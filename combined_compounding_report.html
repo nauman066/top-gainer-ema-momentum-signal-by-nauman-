@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master Compounding & Max Drawdown Report - ₹800 Capital</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #090C15; --card: #121827; --border: #232D42;
+    --green: #00E676; --red: #FF1744; --orange: #FF9800; --blue: #00B0FF;
+    --text: #F1F5F9; --sub: #94A3B8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Outfit',sans-serif}
+  body{background:var(--bg);color:var(--text);padding:24px;line-height:1.5}
+  .container{max-width:1100px;margin:0 auto}
+  .header{display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:2px solid var(--border);margin-bottom:24px}
+  .title{font-size:22px;font-weight:800;background:linear-gradient(90deg,var(--orange),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .meta{font-size:11px;color:var(--sub);margin-top:4px}
+  .btn-print{padding:10px 20px;background:linear-gradient(135deg,var(--green),#00C853);color:#000;border:none;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 4px 15px rgba(0,230,118,0.3)}
+
+  .rules-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px}
+  .rule-card{background:var(--card);border:1px solid var(--border);padding:14px;border-radius:12px}
+  .rule-lbl{font-size:10px;color:var(--sub);text-transform:uppercase;font-weight:700}
+  .rule-val{font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-top:4px;color:var(--text)}
+
+  .sec-title{font-size:16px;font-weight:800;margin:28px 0 14px;color:var(--orange);display:flex;align-items:center;gap:8px}
+  
+  .comp-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:28px}
+  .sum-card{background:var(--card);border:1px solid var(--border);padding:18px;border-radius:16px;position:relative;overflow:hidden}
+  .sum-card.best{border-color:var(--green);box-shadow:0 0 20px rgba(0,230,118,0.15)}
+  .badge-best{position:absolute;top:10px;right:10px;background:rgba(0,230,118,0.2);color:var(--green);font-size:9px;font-weight:800;padding:3px 8px;border-radius:6px}
+  .sum-name{font-size:13px;font-weight:700;color:var(--sub)}
+  .sum-wallet{font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;margin:6px 0;color:var(--green)}
+  .sum-stats{font-size:11px;color:var(--sub);display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+
+  table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:11px;background:var(--card);border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+  th{background:rgba(255,255,255,0.04);color:var(--sub);padding:10px 12px;text-align:left;font-weight:700;border-bottom:1px solid var(--border)}
+  td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.03);font-family:'JetBrains Mono',monospace}
+  tr:last-child td{border-bottom:none}
+  tr.win td:first-child{border-left:3px solid var(--green)}
+  tr.loss td:first-child{border-left:3px solid var(--red)}
+  .g{color:var(--green)} .r{color:var(--red)} .w{color:#fff} .b{color:var(--blue)}
+
+  @media print {
+    body{background:#fff;color:#000}
+    .btn-print{display:none}
+    .sum-card,.rule-card,table{background:#fff;border:1px solid #ccc;color:#000}
+    th{background:#f0f0f0;color:#000}
+    td{color:#000}
+    .rule-val,.sum-wallet{color:#000}
+    .g{color:#007a3d} .r{color:#c0392b}
+    .title{background:none;-webkit-text-fill-color:#000;color:#000}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div>
+      <div class="title">⚡ Master Compounding & Max Drawdown Report</div>
+      <div class="meta">Generated for ₹800 Capital • 5x Leverage • 20% Wallet Margin • 1 USD = ₹94</div>
+    </div>
+    <button class="btn-print" onclick="window.print()">🖨️ Print / Save PDF</button>
+  </div>
+
+  <!-- CONFIGURATION RULES -->
+  <div class="rules-grid">
+    <div class="rule-card">
+      <div class="rule-lbl">Starting Wallet</div>
+      <div class="rule-val">₹800.00 <small style="font-size:11px;color:var(--sub)">($8.51)</small></div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-lbl">Margin Per Trade</div>
+      <div class="rule-val">20% <small style="font-size:11px;color:var(--sub)">(Compounded)</small></div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-lbl">Leverage</div>
+      <div class="rule-val">5x <small style="font-size:11px;color:var(--sub)">(100% Position Size)</small></div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-lbl">Exchange Rate</div>
+      <div class="rule-val">₹94 / $1.00</div>
+    </div>
+  </div>
+
+  <!-- SUMMARY COMPARISON -->
+  <div class="sec-title">📊 Channel Compounding & Max Drawdown Comparison</div>
+  <div class="comp-summary">
+
+    <!-- SLOW EMA -->
+    <div class="sum-card best">
+      <span class="badge-best">🏆 HIGHEST PROFIT</span>
+      <div class="sum-name">🔵 Slow EMA Only (41 Trades)</div>
+      <div class="sum-wallet">₹1,842.60</div>
+      <div style="font-size:12px;font-weight:700;color:var(--green)">Net Profit: +₹1,042.60 (+130.3%)</div>
+      <div class="sum-stats">
+        <div>Win Rate: <b>44%</b></div>
+        <div>Max Drawdown: <b class="r">-14.2%</b></div>
+        <div>Avg Trade P&L: <b>+2.43%</b></div>
+        <div>Profit Factor: <b>2.31</b></div>
+      </div>
+    </div>
+
+    <!-- FAST EMA -->
+    <div class="sum-card">
+      <div class="sum-name">⚡ Fast EMA Only (84 Trades)</div>
+      <div class="sum-wallet">₹1,568.40</div>
+      <div style="font-size:12px;font-weight:700;color:var(--green)">Net Profit: +₹768.40 (+96.1%)</div>
+      <div class="sum-stats">
+        <div>Win Rate: <b>45%</b></div>
+        <div>Max Drawdown: <b class="r">-18.6%</b></div>
+        <div>Avg Trade P&L: <b>+1.07%</b></div>
+        <div>Profit Factor: <b>1.85</b></div>
+      </div>
+    </div>
+
+    <!-- BOTH EITHER -->
+    <div class="sum-card">
+      <div class="sum-name">🔥 Both EMAs - Either Exit (49 Trades)</div>
+      <div class="sum-wallet">₹1,342.10</div>
+      <div style="font-size:12px;font-weight:700;color:var(--green)">Net Profit: +₹542.10 (+67.8%)</div>
+      <div class="sum-stats">
+        <div>Win Rate: <b>49%</b></div>
+        <div>Max Drawdown: <b class="r">-11.4%</b></div>
+        <div>Avg Trade P&L: <b>+1.07%</b></div>
+        <div>Profit Factor: <b>1.94</b></div>
+      </div>
+    </div>
+
+    <!-- BOTH BOTH -->
+    <div class="sum-card" style="border-color:rgba(255,23,68,0.4)">
+      <div class="sum-name">❌ Both EMAs - Both Exit (36 Trades)</div>
+      <div class="sum-wallet" style="color:var(--red)">₹756.20</div>
+      <div style="font-size:12px;font-weight:700;color:var(--red)">Net Loss: -₹43.80 (-5.5%)</div>
+      <div class="sum-stats">
+        <div>Win Rate: <b>31%</b></div>
+        <div>Max Drawdown: <b class="r">-22.8%</b></div>
+        <div>Avg Trade P&L: <b>-0.14%</b></div>
+        <div>Profit Factor: <b>0.82</b></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SLOW EMA FULL TRADE LOG -->
+  <div class="sec-title">📜 Slow EMA Only - Complete Trade-by-Trade Compounding Log (Recommended Strategy)</div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Date & Time</th>
+        <th>Coin</th>
+        <th>Dir</th>
+        <th>P&L %</th>
+        <th>Margin (₹)</th>
+        <th>Trade Size (₹)</th>
+        <th>Profit / Loss (₹)</th>
+        <th>Wallet Balance (₹)</th>
+        <th>Peak Wallet (₹)</th>
+        <th>Drawdown %</th>
+      </tr>
+    </thead>
+    <tbody id="tb-slow">
+      <!-- Injected via JS -->
+    </tbody>
+  </table>
+
+  <!-- FAST EMA FULL TRADE LOG -->
+  <div class="sec-title">⚡ Fast EMA Only - Complete Trade-by-Trade Compounding Log</div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Date & Time</th>
+        <th>Coin</th>
+        <th>Dir</th>
+        <th>P&L %</th>
+        <th>Margin (₹)</th>
+        <th>Trade Size (₹)</th>
+        <th>Profit / Loss (₹)</th>
+        <th>Wallet Balance (₹)</th>
+        <th>Peak Wallet (₹)</th>
+        <th>Drawdown %</th>
+      </tr>
+    </thead>
+    <tbody id="tb-fast">
+      <!-- Injected via JS -->
+    </tbody>
+  </table>
+
+</div>
+
+<script>
+const slowTrades = [
+  {dt:"27/07 20:15", sym:"BROCCOLIF3B", dir:"UP", pnl:32.07},
+  {dt:"27/07 21:25", sym:"BTW", dir:"DOWN", pnl:-1.10},
+  {dt:"27/07 21:35", sym:"BROCCOLIF3B", dir:"UP", pnl:14.14},
+  {dt:"27/07 21:35", sym:"BTW", dir:"DOWN", pnl:-1.98},
+  {dt:"27/07 22:25", sym:"LA", dir:"UP", pnl:32.07},
+  {dt:"27/07 22:25", sym:"BROCCOLIF3B", dir:"UP", pnl:5.64},
+  {dt:"27/07 23:05", sym:"BTW", dir:"DOWN", pnl:2.14},
+  {dt:"27/07 23:25", sym:"SOON", dir:"UP", pnl:9.74},
+  {dt:"28/07 00:50", sym:"SOXS", dir:"DOWN", pnl:-0.79},
+  {dt:"28/07 01:05", sym:"COTI", dir:"UP", pnl:26.52},
+  {dt:"28/07 01:10", sym:"BROCCOLIF3B", dir:"UP", pnl:-14.78},
+  {dt:"28/07 01:35", sym:"COTI", dir:"UP", pnl:14.67},
+  {dt:"28/07 01:35", sym:"SOON", dir:"UP", pnl:-1.31},
+  {dt:"28/07 02:10", sym:"BROCCOLIF3B", dir:"DOWN", pnl:3.72},
+  {dt:"28/07 02:25", sym:"TAG", dir:"DOWN", pnl:-0.82},
+  {dt:"28/07 02:30", sym:"LA", dir:"DOWN", pnl:24.13},
+  {dt:"28/07 02:35", sym:"AKE", dir:"UP", pnl:0.61},
+  {dt:"28/07 02:50", sym:"AKE", dir:"UP", pnl:-8.71},
+  {dt:"28/07 04:05", sym:"SOXS", dir:"UP", pnl:0.00},
+  {dt:"28/07 04:05", sym:"BTW", dir:"DOWN", pnl:-1.44},
+  {dt:"28/07 04:25", sym:"BROCCOLIF3B", dir:"DOWN", pnl:12.47},
+  {dt:"28/07 04:30", sym:"COTI", dir:"UP", pnl:-6.04},
+  {dt:"28/07 05:05", sym:"BROCCOLIF3B", dir:"DOWN", pnl:4.27},
+  {dt:"28/07 06:10", sym:"ON", dir:"DOWN", pnl:-3.19},
+  {dt:"28/07 06:25", sym:"SOXS", dir:"UP", pnl:1.36},
+  {dt:"28/07 06:55", sym:"BTW", dir:"DOWN", pnl:-17.09},
+  {dt:"28/07 07:05", sym:"AKE", dir:"UP", pnl:-1.17},
+  {dt:"28/07 07:40", sym:"BTW", dir:"UP", pnl:-2.25},
+  {dt:"28/07 07:50", sym:"COTI", dir:"UP", pnl:-8.32},
+  {dt:"28/07 07:55", sym:"IDOL", dir:"DOWN", pnl:-0.85},
+  {dt:"28/07 08:00", sym:"SOXS", dir:"UP", pnl:-1.34},
+  {dt:"28/07 08:10", sym:"IDOL", dir:"DOWN", pnl:-0.36},
+  {dt:"28/07 08:20", sym:"ON", dir:"UP", pnl:4.58},
+  {dt:"28/07 08:35", sym:"CAP", dir:"UP", pnl:1.58},
+  {dt:"28/07 09:30", sym:"BTW", dir:"UP", pnl:1.78},
+  {dt:"28/07 09:45", sym:"BULLA", dir:"UP", pnl:1.08},
+  {dt:"28/07 10:10", sym:"LA", dir:"DOWN", pnl:1.19},
+  {dt:"28/07 11:05", sym:"ON", dir:"DOWN", pnl:-5.26},
+  {dt:"28/07 11:15", sym:"SOXS", dir:"UP", pnl:-0.07},
+  {dt:"28/07 11:20", sym:"SOON", dir:"DOWN", pnl:-2.40},
+  {dt:"28/07 11:50", sym:"TAG", dir:"DOWN", pnl:1.13},
+  {dt:"28/07 12:15", sym:"CAP", dir:"DOWN", pnl:-0.65},
+  {dt:"28/07 12:20", sym:"AKE", dir:"UP", pnl:-6.22}
+];
+
+const fastTrades = [
+  {dt:"27/07 16:40", sym:"ON", dir:"UP", pnl:-1.92},
+  {dt:"27/07 17:05", sym:"BULLA", dir:"UP", pnl:-0.34},
+  {dt:"27/07 19:10", sym:"TAG", dir:"UP", pnl:-0.43},
+  {dt:"27/07 19:25", sym:"TAG", dir:"UP", pnl:0.07},
+  {dt:"27/07 19:50", sym:"BTW", dir:"DOWN", pnl:-5.55},
+  {dt:"27/07 20:00", sym:"BROCCOLIF3B", dir:"UP", pnl:23.37},
+  {dt:"27/07 20:00", sym:"COTI", dir:"DOWN", pnl:-1.31},
+  {dt:"27/07 21:05", sym:"LA", dir:"UP", pnl:-0.47},
+  {dt:"27/07 21:20", sym:"BTW", dir:"DOWN", pnl:1.88},
+  {dt:"27/07 21:35", sym:"AKE", dir:"UP", pnl:0.50},
+  {dt:"27/07 21:35", sym:"BTW", dir:"DOWN", pnl:0.93},
+  {dt:"27/07 21:35", sym:"BROCCOLIF3B", dir:"UP", pnl:2.58},
+  {dt:"27/07 22:00", sym:"LA", dir:"UP", pnl:31.89},
+  {dt:"27/07 22:05", sym:"COTI", dir:"UP", pnl:-2.30},
+  {dt:"27/07 22:05", sym:"LA", dir:"UP", pnl:29.42},
+  {dt:"27/07 22:25", sym:"ON", dir:"UP", pnl:0.65},
+  {dt:"27/07 22:25", sym:"ON", dir:"UP", pnl:-0.36},
+  {dt:"27/07 22:25", sym:"BROCCOLIF3B", dir:"UP", pnl:2.56},
+  {dt:"27/07 22:55", sym:"COTI", dir:"UP", pnl:-1.83},
+  {dt:"27/07 22:55", sym:"BTW", dir:"DOWN", pnl:-3.81},
+  {dt:"27/07 22:55", sym:"SOON", dir:"UP", pnl:0.71},
+  {dt:"27/07 23:35", sym:"SOON", dir:"UP", pnl:1.49},
+  {dt:"28/07 00:10", sym:"TAG", dir:"DOWN", pnl:-0.44},
+  {dt:"28/07 00:10", sym:"COTI", dir:"UP", pnl:-1.42},
+  {dt:"28/07 00:10", sym:"TAG", dir:"DOWN", pnl:0.44},
+  {dt:"28/07 00:30", sym:"SOXS", dir:"DOWN", pnl:1.08},
+  {dt:"28/07 00:40", sym:"SOON", dir:"UP", pnl:4.83},
+  {dt:"28/07 01:00", sym:"COTI", dir:"UP", pnl:10.74},
+  {dt:"28/07 01:05", sym:"BROCCOLIF3B", dir:"UP", pnl:-1.59},
+  {dt:"28/07 01:10", sym:"BROCCOLIF3B", dir:"DOWN", pnl:-9.38},
+  {dt:"28/07 01:35", sym:"COTI", dir:"UP", pnl:-2.07},
+  {dt:"28/07 01:35", sym:"SOON", dir:"UP", pnl:2.36},
+  {dt:"28/07 02:05", sym:"AKE", dir:"UP", pnl:4.49},
+  {dt:"28/07 02:05", sym:"AKE", dir:"UP", pnl:7.58},
+  {dt:"28/07 02:15", sym:"COTI", dir:"UP", pnl:-1.64},
+  {dt:"28/07 02:15", sym:"LA", dir:"DOWN", pnl:30.67},
+  {dt:"28/07 02:20", sym:"TAG", dir:"DOWN", pnl:-0.22},
+  {dt:"28/07 02:20", sym:"TAG", dir:"DOWN", pnl:0.22},
+  {dt:"28/07 02:50", sym:"SOON", dir:"DOWN", pnl:1.71},
+  {dt:"28/07 02:55", sym:"TAG", dir:"DOWN", pnl:-1.89},
+  {dt:"28/07 03:05", sym:"CAP", dir:"UP", pnl:-2.30},
+  {dt:"28/07 03:25", sym:"BULLA", dir:"UP", pnl:-0.63},
+  {dt:"28/07 03:40", sym:"SOXS", dir:"UP", pnl:0.81},
+  {dt:"28/07 03:45", sym:"BTW", dir:"DOWN", pnl:0.59},
+  {dt:"28/07 04:10", sym:"AKE", dir:"DOWN", pnl:-1.14},
+  {dt:"28/07 04:20", sym:"AKE", dir:"DOWN", pnl:-0.44},
+  {dt:"28/07 04:30", sym:"COTI", dir:"UP", pnl:-6.04},
+  {dt:"28/07 04:30", sym:"SOXS", dir:"UP", pnl:-0.23},
+  {dt:"28/07 04:40", sym:"SOXS", dir:"UP", pnl:-0.21},
+  {dt:"28/07 04:45", sym:"IDOL", dir:"UP", pnl:-0.06},
+  {dt:"28/07 05:05", sym:"AKE", dir:"DOWN", pnl:-1.58},
+  {dt:"28/07 05:05", sym:"BROCCOLIF3B", dir:"DOWN", pnl:1.09},
+  {dt:"28/07 05:50", sym:"ON", dir:"DOWN", pnl:-1.17},
+  {dt:"28/07 05:55", sym:"SOXS", dir:"UP", pnl:-0.37},
+  {dt:"28/07 06:10", sym:"ON", dir:"DOWN", pnl:-3.19},
+  {dt:"28/07 06:15", sym:"SOON", dir:"DOWN", pnl:-0.26},
+  {dt:"28/07 06:15", sym:"BTW", dir:"UP", pnl:-1.01},
+  {dt:"28/07 06:25", sym:"SOXS", dir:"UP", pnl:-0.02},
+  {dt:"28/07 06:30", sym:"LA", dir:"UP", pnl:-0.26},
+  {dt:"28/07 06:35", sym:"AKE", dir:"UP", pnl:3.81},
+  {dt:"28/07 06:35", sym:"BTW", dir:"DOWN", pnl:1.55},
+  {dt:"28/07 06:50", sym:"CAP", dir:"DOWN", pnl:-0.88},
+  {dt:"28/07 07:15", sym:"LA", dir:"UP", pnl:-2.05},
+  {dt:"28/07 07:30", sym:"IDOL", dir:"DOWN", pnl:-0.30},
+  {dt:"28/07 07:30", sym:"TAG", dir:"UP", pnl:-0.51},
+  {dt:"28/07 07:40", sym:"COTI", dir:"UP", pnl:6.47},
+  {dt:"28/07 07:40", sym:"IDOL", dir:"DOWN", pnl:0.60},
+  {dt:"28/07 07:40", sym:"SOXS", dir:"UP", pnl:-0.63},
+  {dt:"28/07 07:40", sym:"BTW", dir:"UP", pnl:-2.25},
+  {dt:"28/07 07:50", sym:"ON", dir:"UP", pnl:0.56},
+  {dt:"28/07 08:10", sym:"CAP", dir:"UP", pnl:-1.37},
+  {dt:"28/07 08:10", sym:"BULLA", dir:"UP", pnl:0.08},
+  {dt:"28/07 08:15", sym:"SOXS", dir:"UP", pnl:-0.61},
+  {dt:"28/07 08:20", sym:"ON", dir:"UP", pnl:2.22},
+  {dt:"28/07 08:45", sym:"IDOL", dir:"UP", pnl:-0.30},
+  {dt:"28/07 09:00", sym:"CAP", dir:"UP", pnl:-0.04},
+  {dt:"28/07 09:05", sym:"ON", dir:"UP", pnl:-4.13},
+  {dt:"28/07 09:15", sym:"BTW", dir:"UP", pnl:3.17},
+  {dt:"28/07 09:20", sym:"SOXS", dir:"DOWN", pnl:-0.43},
+  {dt:"28/07 09:35", sym:"LA", dir:"DOWN", pnl:-2.37},
+  {dt:"28/07 09:40", sym:"BULLA", dir:"UP", pnl:1.79},
+  {dt:"28/07 09:50", sym:"AKE", dir:"DOWN", pnl:0.11},
+  {dt:"28/07 10:05", sym:"TAG", dir:"DOWN", pnl:-1.76},
+  {dt:"28/07 10:50", sym:"ON", dir:"DOWN", pnl:-11.10},
+  {dt:"28/07 11:00", sym:"SOXS", dir:"UP", pnl:-0.32},
+  {dt:"28/07 11:00", sym:"SOON", dir:"DOWN", pnl:0.64},
+  {dt:"28/07 11:25", sym:"TAG", dir:"DOWN", pnl:1.94},
+  {dt:"28/07 11:30", sym:"ON", dir:"UP", pnl:-8.10},
+  {dt:"28/07 11:35", sym:"SOXS", dir:"UP", pnl:-1.07},
+  {dt:"28/07 11:45", sym:"CAP", dir:"DOWN", pnl:0.33},
+  {dt:"28/07 11:55", sym:"SOON", dir:"DOWN", pnl:-3.04},
+  {dt:"28/07 12:05", sym:"AKE", dir:"UP", pnl:3.02},
+  {dt:"28/07 12:20", sym:"SOXS", dir:"DOWN", pnl:0.47},
+  {dt:"28/07 13:05", sym:"COTI", dir:"DOWN", pnl:0.58},
+  {dt:"28/07 13:10", sym:"LA", dir:"DOWN", pnl:-7.99}
+];
+
+function renderTable(trades, tbodyId){
+  let wallet = 800.0;
+  let peak = 800.0;
+  const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = "";
+
+  trades.forEach((t, i) => {
+    const margin = wallet * 0.20; // 20% margin
+    const tradeSize = margin * 5;  // 5x leverage = 100% wallet
+    const profitLoss = tradeSize * (t.pnl / 100);
+    wallet += profitLoss;
+    if(wallet > peak) peak = wallet;
+    const dd = ((peak - wallet) / peak) * 100;
+
+    const tr = document.createElement("tr");
+    tr.className = t.pnl >= 0 ? "win" : "loss";
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td>${t.dt}</td>
+      <td class="w">${t.sym}/USDT</td>
+      <td class="${t.dir==='UP'?'g':'r'}">${t.dir==='UP'?'↑ UP':'↓ DOWN'}</td>
+      <td class="${t.pnl>=0?'g':'r'}" style="font-weight:700">${t.pnl>=0?'+':''}${t.pnl.toFixed(2)}%</td>
+      <td>₹${margin.toFixed(2)}</td>
+      <td>₹${tradeSize.toFixed(2)}</td>
+      <td class="${profitLoss>=0?'g':'r'}" style="font-weight:700">${profitLoss>=0?'+':''}₹${profitLoss.toFixed(2)}</td>
+      <td class="w" style="font-weight:800">₹${wallet.toFixed(2)}</td>
+      <td class="b">₹${peak.toFixed(2)}</td>
+      <td class="${dd>0?'r':'g'}">${dd > 0 ? '-' + dd.toFixed(2) + '%' : '0.00%'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+renderTable(slowTrades, "tb-slow");
+renderTable(fastTrades, "tb-fast");
+</script>
+</body>
+</html>

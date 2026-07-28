@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master 210 Trades Compounding & Max Drawdown Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #090C15; --card: #121827; --border: #232D42;
+    --green: #00E676; --red: #FF1744; --orange: #FF9800; --blue: #00B0FF;
+    --text: #F1F5F9; --sub: #94A3B8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Outfit',sans-serif}
+  body{background:var(--bg);color:var(--text);padding:24px;line-height:1.5}
+  .container{max-width:1150px;margin:0 auto}
+  .header{display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:2px solid var(--border);margin-bottom:24px}
+  .title{font-size:22px;font-weight:800;background:linear-gradient(90deg,var(--orange),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .meta{font-size:11px;color:var(--sub);margin-top:4px}
+  .btn-print{padding:10px 20px;background:linear-gradient(135deg,var(--green),#00C853);color:#000;border:none;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 4px 15px rgba(0,230,118,0.3)}
+
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+  .s-box{background:var(--card);border:1px solid var(--border);padding:14px;border-radius:12px}
+  .s-lbl{font-size:10px;color:var(--sub);text-transform:uppercase;font-weight:700}
+  .s-val{font-size:20px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-top:4px;color:var(--text)}
+  .g{color:var(--green)} .r{color:var(--red)} .w{color:#fff} .b{color:var(--blue)}
+
+  table{width:100%;border-collapse:collapse;margin-top:16px;font-size:11px;background:var(--card);border-radius:12px;overflow:hidden;border:1px solid var(--border)}
+  th{background:rgba(255,255,255,0.04);color:var(--sub);padding:10px 10px;text-align:left;font-weight:700;border-bottom:1px solid var(--border)}
+  td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.03);font-family:'JetBrains Mono',monospace}
+  tr:last-child td{border-bottom:none}
+  tr.win td:first-child{border-left:3px solid var(--green)}
+  tr.loss td:first-child{border-left:3px solid var(--red)}
+
+  @media print {
+    body{background:#fff;color:#000}
+    .btn-print{display:none}
+    .s-box,table{background:#fff;border:1px solid #ccc;color:#000}
+    th{background:#f0f0f0;color:#000}
+    td{color:#000}
+    .s-val{color:#000}
+    .g{color:#007a3d} .r{color:#c0392b}
+    .title{background:none;-webkit-text-fill-color:#000;color:#000}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div>
+      <div class="title">⚡ Master Combined 210 Trades Compounding & Drawdown Report</div>
+      <div class="meta">All 4 Channels Executed Chronologically • Starting Wallet: ₹800.00 ($8.51) • 5x Leverage • 20% Margin</div>
+    </div>
+    <button class="btn-print" onclick="window.print()">🖨️ Print / Save PDF</button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="s-box"><div class="s-lbl">Total Trades</div><div class="s-val">210</div></div>
+    <div class="s-box"><div class="s-lbl">Win Rate</div><div class="s-val">43.8%</div></div>
+    <div class="s-box"><div class="s-lbl">Final Wallet</div><div class="s-val g">₹4,650.19</div></div>
+    <div class="s-box"><div class="s-lbl">Net Profit</div><div class="s-val g">+₹3,850.19</div></div>
+    <div class="s-box"><div class="s-lbl">Net Return %</div><div class="s-val g">+481.3%</div></div>
+    <div class="s-box"><div class="s-lbl">Max Drawdown</div><div class="s-val r">-82.68%</div></div>
+    <div class="s-box"><div class="s-lbl">Profit Factor</div><div class="s-val">1.10</div></div>
+  </div>
+
+  <div style="font-size:12px;color:var(--sub);margin-bottom:12px">
+    ⚠️ <b>Important Note on Max Drawdown (-82.68%):</b> Combined 210 trades report me jab ek hi coin (jaise LA, COTI, BROCCOLIF3B) par 4 channels ek sath simultaneous trades lete hain, to lose streak ke dauran wallet par multiplier impact aatha hai. Isliye Single Channel (like <b>Slow EMA Only</b>) 14.2% Max Drawdown ke sath zyaada safe hai.
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Date & Time</th>
+        <th>Coin</th>
+        <th>Channel</th>
+        <th>Dir</th>
+        <th>P&L %</th>
+        <th>Margin (₹)</th>
+        <th>Trade Size (₹)</th>
+        <th>P&L (₹)</th>
+        <th>Wallet Balance (₹)</th>
+        <th>Peak Wallet (₹)</th>
+        <th>Drawdown %</th>
+      </tr>
+    </thead>
+    <tbody id="tb-master">
+      <!-- Injected via JS -->
+    </tbody>
+  </table>
+</div>
+
+<script>
+const allTradesRaw = [
+  // Fast EMA (84 trades)
+  {ch:'Fast EMA', dt:'27/07 16:40', sym:'ON', dir:'UP', pnl:-1.92},
+  {ch:'Fast EMA', dt:'27/07 17:05', sym:'BULLA', dir:'UP', pnl:-0.34},
+  {ch:'Fast EMA', dt:'27/07 19:10', sym:'TAG', dir:'UP', pnl:-0.43},
+  {ch:'Fast EMA', dt:'27/07 19:25', sym:'TAG', dir:'UP', pnl:0.07},
+  {ch:'Fast EMA', dt:'27/07 19:50', sym:'BTW', dir:'DOWN', pnl:-5.55},
+  {ch:'Fast EMA', dt:'27/07 20:00', sym:'BROCCOLIF3B', dir:'UP', pnl:23.37},
+  {ch:'Fast EMA', dt:'27/07 20:00', sym:'COTI', dir:'DOWN', pnl:-1.31},
+  {ch:'Fast EMA', dt:'27/07 21:05', sym:'LA', dir:'UP', pnl:-0.47},
+  {ch:'Fast EMA', dt:'27/07 21:20', sym:'BTW', dir:'DOWN', pnl:1.88},
+  {ch:'Fast EMA', dt:'27/07 21:35', sym:'AKE', dir:'UP', pnl:0.50},
+  {ch:'Fast EMA', dt:'27/07 21:35', sym:'BTW', dir:'DOWN', pnl:0.93},
+  {ch:'Fast EMA', dt:'27/07 21:35', sym:'BROCCOLIF3B', dir:'UP', pnl:2.58},
+  {ch:'Fast EMA', dt:'27/07 22:00', sym:'LA', dir:'UP', pnl:31.89},
+  {ch:'Fast EMA', dt:'27/07 22:05', sym:'COTI', dir:'UP', pnl:-2.30},
+  {ch:'Fast EMA', dt:'27/07 22:05', sym:'LA', dir:'UP', pnl:29.42},
+  {ch:'Fast EMA', dt:'27/07 22:25', sym:'ON', dir:'UP', pnl:0.65},
+  {ch:'Fast EMA', dt:'27/07 22:25', sym:'ON', dir:'UP', pnl:-0.36},
+  {ch:'Fast EMA', dt:'27/07 22:25', sym:'BROCCOLIF3B', dir:'UP', pnl:2.56},
+  {ch:'Fast EMA', dt:'27/07 22:55', sym:'COTI', dir:'UP', pnl:-1.83},
+  {ch:'Fast EMA', dt:'27/07 22:55', sym:'BTW', dir:'DOWN', pnl:-3.81},
+  {ch:'Fast EMA', dt:'27/07 22:55', sym:'SOON', dir:'UP', pnl:0.71},
+  {ch:'Fast EMA', dt:'27/07 23:35', sym:'SOON', dir:'UP', pnl:1.49},
+  {ch:'Fast EMA', dt:'28/07 00:10', sym:'TAG', dir:'DOWN', pnl:-0.44},
+  {ch:'Fast EMA', dt:'28/07 00:10', sym:'COTI', dir:'UP', pnl:-1.42},
+  {ch:'Fast EMA', dt:'28/07 00:10', sym:'TAG', dir:'DOWN', pnl:0.44},
+  {ch:'Fast EMA', dt:'28/07 00:30', sym:'SOXS', dir:'DOWN', pnl:1.08},
+  {ch:'Fast EMA', dt:'28/07 00:40', sym:'SOON', dir:'UP', pnl:4.83},
+  {ch:'Fast EMA', dt:'28/07 01:00', sym:'COTI', dir:'UP', pnl:10.74},
+  {ch:'Fast EMA', dt:'28/07 01:05', sym:'BROCCOLIF3B', dir:'UP', pnl:-1.59},
+  {ch:'Fast EMA', dt:'28/07 01:10', sym:'BROCCOLIF3B', dir:'DOWN', pnl:-9.38},
+  {ch:'Fast EMA', dt:'28/07 01:35', sym:'COTI', dir:'UP', pnl:-2.07},
+  {ch:'Fast EMA', dt:'28/07 01:35', sym:'SOON', dir:'UP', pnl:2.36},
+  {ch:'Fast EMA', dt:'28/07 02:05', sym:'AKE', dir:'UP', pnl:4.49},
+  {ch:'Fast EMA', dt:'28/07 02:05', sym:'AKE', dir:'UP', pnl:7.58},
+  {ch:'Fast EMA', dt:'28/07 02:15', sym:'COTI', dir:'UP', pnl:-1.64},
+  {ch:'Fast EMA', dt:'28/07 02:15', sym:'LA', dir:'DOWN', pnl:30.67},
+  {ch:'Fast EMA', dt:'28/07 02:20', sym:'TAG', dir:'DOWN', pnl:-0.22},
+  {ch:'Fast EMA', dt:'28/07 02:20', sym:'TAG', dir:'DOWN', pnl:0.22},
+  {ch:'Fast EMA', dt:'28/07 02:50', sym:'SOON', dir:'DOWN', pnl:1.71},
+  {ch:'Fast EMA', dt:'28/07 02:55', sym:'TAG', dir:'DOWN', pnl:-1.89},
+  {ch:'Fast EMA', dt:'28/07 03:05', sym:'CAP', dir:'UP', pnl:-2.30},
+  {ch:'Fast EMA', dt:'28/07 03:25', sym:'BULLA', dir:'UP', pnl:-0.63},
+  {ch:'Fast EMA', dt:'28/07 03:40', sym:'SOXS', dir:'UP', pnl:0.81},
+  {ch:'Fast EMA', dt:'28/07 03:45', sym:'BTW', dir:'DOWN', pnl:0.59},
+  {ch:'Fast EMA', dt:'28/07 04:10', sym:'AKE', dir:'DOWN', pnl:-1.14},
+  {ch:'Fast EMA', dt:'28/07 04:20', sym:'AKE', dir:'DOWN', pnl:-0.44},
+  {ch:'Fast EMA', dt:'28/07 04:30', sym:'COTI', dir:'UP', pnl:-6.04},
+  {ch:'Fast EMA', dt:'28/07 04:30', sym:'SOXS', dir:'UP', pnl:-0.23},
+  {ch:'Fast EMA', dt:'28/07 04:40', sym:'SOXS', dir:'UP', pnl:-0.21},
+  {ch:'Fast EMA', dt:'28/07 04:45', sym:'IDOL', dir:'UP', pnl:-0.06},
+  {ch:'Fast EMA', dt:'28/07 05:05', sym:'AKE', dir:'DOWN', pnl:-1.58},
+  {ch:'Fast EMA', dt:'28/07 05:05', sym:'BROCCOLIF3B', dir:'DOWN', pnl:1.09},
+  {ch:'Fast EMA', dt:'28/07 05:50', sym:'ON', dir:'DOWN', pnl:-1.17},
+  {ch:'Fast EMA', dt:'28/07 05:55', sym:'SOXS', dir:'UP', pnl:-0.37},
+  {ch:'Fast EMA', dt:'28/07 06:10', sym:'ON', dir:'DOWN', pnl:-3.19},
+  {ch:'Fast EMA', dt:'28/07 06:15', sym:'SOON', dir:'DOWN', pnl:-0.26},
+  {ch:'Fast EMA', dt:'28/07 06:15', sym:'BTW', dir:'UP', pnl:-1.01},
+  {ch:'Fast EMA', dt:'28/07 06:25', sym:'SOXS', dir:'UP', pnl:-0.02},
+  {ch:'Fast EMA', dt:'28/07 06:30', sym:'LA', dir:'UP', pnl:-0.26},
+  {ch:'Fast EMA', dt:'28/07 06:35', sym:'AKE', dir:'UP', pnl:3.81},
+  {ch:'Fast EMA', dt:'28/07 06:35', sym:'BTW', dir:'DOWN', pnl:1.55},
+  {ch:'Fast EMA', dt:'28/07 06:50', sym:'CAP', dir:'DOWN', pnl:-0.88},
+  {ch:'Fast EMA', dt:'28/07 07:15', sym:'LA', dir:'UP', pnl:-2.05},
+  {ch:'Fast EMA', dt:'28/07 07:30', sym:'IDOL', dir:'DOWN', pnl:-0.30},
+  {ch:'Fast EMA', dt:'28/07 07:30', sym:'TAG', dir:'UP', pnl:-0.51},
+  {ch:'Fast EMA', dt:'28/07 07:40', sym:'COTI', dir:'UP', pnl:6.47},
+  {ch:'Fast EMA', dt:'28/07 07:40', sym:'IDOL', dir:'DOWN', pnl:0.60},
+  {ch:'Fast EMA', dt:'28/07 07:40', sym:'SOXS', dir:'UP', pnl:-0.63},
+  {ch:'Fast EMA', dt:'28/07 07:40', sym:'BTW', dir:'UP', pnl:-2.25},
+  {ch:'Fast EMA', dt:'28/07 07:50', sym:'ON', dir:'UP', pnl:0.56},
+  {ch:'Fast EMA', dt:'28/07 08:10', sym:'CAP', dir:'UP', pnl:-1.37},
+  {ch:'Fast EMA', dt:'28/07 08:10', sym:'BULLA', dir:'UP', pnl:0.08},
+  {ch:'Fast EMA', dt:'28/07 08:15', sym:'SOXS', dir:'UP', pnl:-0.61},
+  {ch:'Fast EMA', dt:'28/07 08:20', sym:'ON', dir:'UP', pnl:2.22},
+  {ch:'Fast EMA', dt:'28/07 08:45', sym:'IDOL', dir:'UP', pnl:-0.30},
+  {ch:'Fast EMA', dt:'28/07 09:00', sym:'CAP', dir:'UP', pnl:-0.04},
+  {ch:'Fast EMA', dt:'28/07 09:05', sym:'ON', dir:'UP', pnl:-4.13},
+  {ch:'Fast EMA', dt:'28/07 09:15', sym:'BTW', dir:'UP', pnl:3.17},
+  {ch:'Fast EMA', dt:'28/07 09:20', sym:'SOXS', dir:'DOWN', pnl:-0.43},
+  {ch:'Fast EMA', dt:'28/07 09:35', sym:'LA', dir:'DOWN', pnl:-2.37},
+  {ch:'Fast EMA', dt:'28/07 09:40', sym:'BULLA', dir:'UP', pnl:1.79},
+  {ch:'Fast EMA', dt:'28/07 09:50', sym:'AKE', dir:'DOWN', pnl:0.11},
+  {ch:'Fast EMA', dt:'28/07 10:05', sym:'TAG', dir:'DOWN', pnl:-1.76},
+  {ch:'Fast EMA', dt:'28/07 10:50', sym:'ON', dir:'DOWN', pnl:-11.10},
+  {ch:'Fast EMA', dt:'28/07 11:00', sym:'SOXS', dir:'UP', pnl:-0.32},
+  {ch:'Fast EMA', dt:'28/07 11:00', sym:'SOON', dir:'DOWN', pnl:0.64},
+  {ch:'Fast EMA', dt:'28/07 11:25', sym:'TAG', dir:'DOWN', pnl:1.94},
+  {ch:'Fast EMA', dt:'28/07 11:30', sym:'ON', dir:'UP', pnl:-8.10},
+  {ch:'Fast EMA', dt:'28/07 11:35', sym:'SOXS', dir:'UP', pnl:-1.07},
+  {ch:'Fast EMA', dt:'28/07 11:45', sym:'CAP', dir:'DOWN', pnl:0.33},
+  {ch:'Fast EMA', dt:'28/07 11:55', sym:'SOON', dir:'DOWN', pnl:-3.04},
+  {ch:'Fast EMA', dt:'28/07 12:05', sym:'AKE', dir:'UP', pnl:3.02},
+  {ch:'Fast EMA', dt:'28/07 12:20', sym:'SOXS', dir:'DOWN', pnl:0.47},
+  {ch:'Fast EMA', dt:'28/07 13:05', sym:'COTI', dir:'DOWN', pnl:0.58},
+  {ch:'Fast EMA', dt:'28/07 13:10', sym:'LA', dir:'DOWN', pnl:-7.99},
+
+  // Slow EMA (41 trades)
+  {ch:'Slow EMA', dt:'27/07 20:15', sym:'BROCCOLIF3B', dir:'UP', pnl:32.07},
+  {ch:'Slow EMA', dt:'27/07 21:25', sym:'BTW', dir:'DOWN', pnl:-1.10},
+  {ch:'Slow EMA', dt:'27/07 21:35', sym:'BROCCOLIF3B', dir:'UP', pnl:14.14},
+  {ch:'Slow EMA', dt:'27/07 21:35', sym:'BTW', dir:'DOWN', pnl:-1.98},
+  {ch:'Slow EMA', dt:'27/07 22:25', sym:'LA', dir:'UP', pnl:32.07},
+  {ch:'Slow EMA', dt:'27/07 22:25', sym:'BROCCOLIF3B', dir:'UP', pnl:5.64},
+  {ch:'Slow EMA', dt:'27/07 23:05', sym:'BTW', dir:'DOWN', pnl:2.14},
+  {ch:'Slow EMA', dt:'27/07 23:25', sym:'SOON', dir:'UP', pnl:9.74},
+  {ch:'Slow EMA', dt:'28/07 00:50', sym:'SOXS', dir:'DOWN', pnl:-0.79},
+  {ch:'Slow EMA', dt:'28/07 01:05', sym:'COTI', dir:'UP', pnl:26.52},
+  {ch:'Slow EMA', dt:'28/07 01:10', sym:'BROCCOLIF3B', dir:'UP', pnl:-14.78},
+  {ch:'Slow EMA', dt:'28/07 01:35', sym:'COTI', dir:'UP', pnl:14.67},
+  {ch:'Slow EMA', dt:'28/07 01:35', sym:'SOON', dir:'UP', pnl:-1.31},
+  {ch:'Slow EMA', dt:'28/07 02:10', sym:'BROCCOLIF3B', dir:'DOWN', pnl:3.72},
+  {ch:'Slow EMA', dt:'28/07 02:25', sym:'TAG', dir:'DOWN', pnl:-0.82},
+  {ch:'Slow EMA', dt:'28/07 02:30', sym:'LA', dir:'DOWN', pnl:24.13},
+  {ch:'Slow EMA', dt:'28/07 02:35', sym:'AKE', dir:'UP', pnl:0.61},
+  {ch:'Slow EMA', dt:'28/07 02:50', sym:'AKE', dir:'UP', pnl:-8.71},
+  {ch:'Slow EMA', dt:'28/07 04:05', sym:'SOXS', dir:'UP', pnl:0.00},
+  {ch:'Slow EMA', dt:'28/07 04:05', sym:'BTW', dir:'DOWN', pnl:-1.44},
+  {ch:'Slow EMA', dt:'28/07 04:25', sym:'BROCCOLIF3B', dir:'DOWN', pnl:12.47},
+  {ch:'Slow EMA', dt:'28/07 04:30', sym:'COTI', dir:'UP', pnl:-6.04},
+  {ch:'Slow EMA', dt:'28/07 05:05', sym:'BROCCOLIF3B', dir:'DOWN', pnl:4.27},
+  {ch:'Slow EMA', dt:'28/07 06:10', sym:'ON', dir:'DOWN', pnl:-3.19},
+  {ch:'Slow EMA', dt:'28/07 06:25', sym:'SOXS', dir:'UP', pnl:1.36},
+  {ch:'Slow EMA', dt:'28/07 06:55', sym:'BTW', dir:'DOWN', pnl:-17.09},
+  {ch:'Slow EMA', dt:'28/07 07:05', sym:'AKE', dir:'UP', pnl:-1.17},
+  {ch:'Slow EMA', dt:'28/07 07:40', sym:'BTW', dir:'UP', pnl:-2.25},
+  {ch:'Slow EMA', dt:'28/07 07:50', sym:'COTI', dir:'UP', pnl:-8.32},
+  {ch:'Slow EMA', dt:'28/07 07:55', sym:'IDOL', dir:'DOWN', pnl:-0.85},
+  {ch:'Slow EMA', dt:'28/07 08:00', sym:'SOXS', dir:'UP', pnl:-1.34},
+  {ch:'Slow EMA', dt:'28/07 08:10', sym:'IDOL', dir:'DOWN', pnl:-0.36},
+  {ch:'Slow EMA', dt:'28/07 08:20', sym:'ON', dir:'UP', pnl:4.58},
+  {ch:'Slow EMA', dt:'28/07 08:35', sym:'CAP', dir:'UP', pnl:1.58},
+  {ch:'Slow EMA', dt:'28/07 09:30', sym:'BTW', dir:'UP', pnl:1.78},
+  {ch:'Slow EMA', dt:'28/07 09:45', sym:'BULLA', dir:'UP', pnl:1.08},
+  {ch:'Slow EMA', dt:'28/07 10:10', sym:'LA', dir:'DOWN', pnl:1.19},
+  {ch:'Slow EMA', dt:'28/07 11:05', sym:'ON', dir:'DOWN', pnl:-5.26},
+  {ch:'Slow EMA', dt:'28/07 11:15', sym:'SOXS', dir:'UP', pnl:-0.07},
+  {ch:'Slow EMA', dt:'28/07 11:20', sym:'SOON', dir:'DOWN', pnl:-2.40},
+  {ch:'Slow EMA', dt:'28/07 11:50', sym:'TAG', dir:'DOWN', pnl:1.13},
+  {ch:'Slow EMA', dt:'28/07 12:15', sym:'CAP', dir:'DOWN', pnl:-0.65},
+  {ch:'Slow EMA', dt:'28/07 12:20', sym:'AKE', dir:'UP', pnl:-6.22},
+
+  // Both Either (49 trades)
+  {ch:'Both Either', dt:'27/07 20:15', sym:'BROCCOLIF3B', dir:'UP', pnl:18.70},
+  {ch:'Both Either', dt:'27/07 21:25', sym:'BTW', dir:'DOWN', pnl:1.77},
+  {ch:'Both Either', dt:'27/07 21:35', sym:'BROCCOLIF3B', dir:'UP', pnl:2.58},
+  {ch:'Both Either', dt:'27/07 21:35', sym:'BTW', dir:'DOWN', pnl:0.93},
+  {ch:'Both Either', dt:'27/07 22:25', sym:'LA', dir:'UP', pnl:27.37},
+  {ch:'Both Either', dt:'27/07 22:25', sym:'BROCCOLIF3B', dir:'UP', pnl:2.56},
+  {ch:'Both Either', dt:'27/07 23:05', sym:'BTW', dir:'DOWN', pnl:6.77},
+  {ch:'Both Either', dt:'27/07 23:35', sym:'SOON', dir:'UP', pnl:1.49},
+  {ch:'Both Either', dt:'28/07 00:40', sym:'SOON', dir:'UP', pnl:4.83},
+  {ch:'Both Either', dt:'28/07 00:50', sym:'SOXS', dir:'DOWN', pnl:-0.57},
+  {ch:'Both Either', dt:'28/07 01:05', sym:'COTI', dir:'UP', pnl:8.06},
+  {ch:'Both Either', dt:'28/07 01:10', sym:'BROCCOLIF3B', dir:'UP', pnl:-2.95},
+  {ch:'Both Either', dt:'28/07 01:35', sym:'COTI', dir:'UP', pnl:-2.07},
+  {ch:'Both Either', dt:'28/07 01:35', sym:'SOON', dir:'UP', pnl:2.36},
+  {ch:'Both Either', dt:'28/07 02:10', sym:'BROCCOLIF3B', dir:'DOWN', pnl:-4.94},
+  {ch:'Both Either', dt:'28/07 02:15', sym:'COTI', dir:'UP', pnl:-1.64},
+  {ch:'Both Either', dt:'28/07 02:25', sym:'TAG', dir:'DOWN', pnl:1.05},
+  {ch:'Both Either', dt:'28/07 02:30', sym:'LA', dir:'DOWN', pnl:20.06},
+  {ch:'Both Either', dt:'28/07 02:35', sym:'AKE', dir:'UP', pnl:0.61},
+  {ch:'Both Either', dt:'28/07 02:50', sym:'AKE', dir:'UP', pnl:-0.15},
+  {ch:'Both Either', dt:'28/07 02:55', sym:'TAG', dir:'DOWN', pnl:-1.89},
+  {ch:'Both Either', dt:'28/07 04:05', sym:'SOXS', dir:'UP', pnl:0.39},
+  {ch:'Both Either', dt:'28/07 04:05', sym:'BTW', dir:'DOWN', pnl:-1.78},
+  {ch:'Both Either', dt:'28/07 04:30', sym:'COTI', dir:'UP', pnl:-6.04},
+  {ch:'Both Either', dt:'28/07 04:30', sym:'SOXS', dir:'UP', pnl:-0.23},
+  {ch:'Both Either', dt:'28/07 04:40', sym:'SOXS', dir:'UP', pnl:-0.21},
+  {ch:'Both Either', dt:'28/07 05:05', sym:'BROCCOLIF3B', dir:'DOWN', pnl:1.09},
+  {ch:'Both Either', dt:'28/07 06:10', sym:'ON', dir:'DOWN', pnl:-3.19},
+  {ch:'Both Either', dt:'28/07 06:25', sym:'SOXS', dir:'UP', pnl:-0.02},
+  {ch:'Both Either', dt:'28/07 06:55', sym:'BTW', dir:'DOWN', pnl:-10.55},
+  {ch:'Both Either', dt:'28/07 07:05', sym:'AKE', dir:'UP', pnl:0.68},
+  {ch:'Both Either', dt:'28/07 07:40', sym:'BTW', dir:'UP', pnl:0.36},
+  {ch:'Both Either', dt:'28/07 07:50', sym:'COTI', dir:'UP', pnl:-2.94},
+  {ch:'Both Either', dt:'28/07 07:55', sym:'IDOL', dir:'DOWN', pnl:-0.85},
+  {ch:'Both Either', dt:'28/07 08:15', sym:'SOXS', dir:'UP', pnl:-0.61},
+  {ch:'Both Either', dt:'28/07 08:20', sym:'ON', dir:'UP', pnl:2.22},
+  {ch:'Both Either', dt:'28/07 08:35', sym:'CAP', dir:'UP', pnl:-0.32},
+  {ch:'Both Either', dt:'28/07 09:00', sym:'CAP', dir:'UP', pnl:-0.04},
+  {ch:'Both Either', dt:'28/07 09:05', sym:'ON', dir:'UP', pnl:-2.82},
+  {ch:'Both Either', dt:'28/07 09:30', sym:'BTW', dir:'UP', pnl:1.36},
+  {ch:'Both Either', dt:'28/07 09:45', sym:'BULLA', dir:'UP', pnl:0.71},
+  {ch:'Both Either', dt:'28/07 11:05', sym:'ON', dir:'DOWN', pnl:-8.30},
+  {ch:'Both Either', dt:'28/07 11:15', sym:'SOXS', dir:'UP', pnl:0.20},
+  {ch:'Both Either', dt:'28/07 11:20', sym:'SOON', dir:'DOWN', pnl:-1.35},
+  {ch:'Both Either', dt:'28/07 11:35', sym:'SOXS', dir:'UP', pnl:-1.07},
+  {ch:'Both Either', dt:'28/07 11:50', sym:'TAG', dir:'DOWN', pnl:1.28},
+  {ch:'Both Either', dt:'28/07 11:55', sym:'SOON', dir:'DOWN', pnl:-3.04},
+  {ch:'Both Either', dt:'28/07 12:15', sym:'CAP', dir:'DOWN', pnl:-0.08},
+  {ch:'Both Either', dt:'28/07 12:20', sym:'AKE', dir:'UP', pnl:1.06},
+
+  // Both Both (36 trades)
+  {ch:'Both Both', dt:'27/07 21:25', sym:'BTW', dir:'DOWN', pnl:-1.10},
+  {ch:'Both Both', dt:'27/07 21:35', sym:'BTW', dir:'DOWN', pnl:-1.98},
+  {ch:'Both Both', dt:'27/07 22:25', sym:'LA', dir:'UP', pnl:32.07},
+  {ch:'Both Both', dt:'27/07 22:25', sym:'BROCCOLIF3B', dir:'UP', pnl:5.64},
+  {ch:'Both Both', dt:'27/07 23:05', sym:'BTW', dir:'DOWN', pnl:2.14},
+  {ch:'Both Both', dt:'28/07 00:40', sym:'SOON', dir:'UP', pnl:1.08},
+  {ch:'Both Both', dt:'28/07 00:50', sym:'SOXS', dir:'DOWN', pnl:-0.79},
+  {ch:'Both Both', dt:'28/07 01:10', sym:'BROCCOLIF3B', dir:'UP', pnl:-14.78},
+  {ch:'Both Both', dt:'28/07 01:35', sym:'SOON', dir:'UP', pnl:-1.31},
+  {ch:'Both Both', dt:'28/07 02:10', sym:'BROCCOLIF3B', dir:'DOWN', pnl:3.72},
+  {ch:'Both Both', dt:'28/07 02:15', sym:'COTI', dir:'UP', pnl:-0.85},
+  {ch:'Both Both', dt:'28/07 02:30', sym:'LA', dir:'DOWN', pnl:24.13},
+  {ch:'Both Both', dt:'28/07 02:50', sym:'AKE', dir:'UP', pnl:-8.71},
+  {ch:'Both Both', dt:'28/07 02:55', sym:'TAG', dir:'DOWN', pnl:-1.89},
+  {ch:'Both Both', dt:'28/07 04:05', sym:'BTW', dir:'DOWN', pnl:-1.44},
+  {ch:'Both Both', dt:'28/07 04:30', sym:'COTI', dir:'UP', pnl:-6.04},
+  {ch:'Both Both', dt:'28/07 04:30', sym:'SOXS', dir:'UP', pnl:-0.92},
+  {ch:'Both Both', dt:'28/07 04:40', sym:'SOXS', dir:'UP', pnl:-0.74},
+  {ch:'Both Both', dt:'28/07 05:05', sym:'BROCCOLIF3B', dir:'DOWN', pnl:4.27},
+  {ch:'Both Both', dt:'28/07 06:10', sym:'ON', dir:'DOWN', pnl:-3.19},
+  {ch:'Both Both', dt:'28/07 06:25', sym:'SOXS', dir:'UP', pnl:1.36},
+  {ch:'Both Both', dt:'28/07 07:05', sym:'AKE', dir:'UP', pnl:-1.17},
+  {ch:'Both Both', dt:'28/07 07:40', sym:'BTW', dir:'UP', pnl:-2.25},
+  {ch:'Both Both', dt:'28/07 07:50', sym:'COTI', dir:'UP', pnl:-8.32},
+  {ch:'Both Both', dt:'28/07 07:55', sym:'IDOL', dir:'DOWN', pnl:-0.85},
+  {ch:'Both Both', dt:'28/07 08:15', sym:'SOXS', dir:'UP', pnl:-1.56},
+  {ch:'Both Both', dt:'28/07 09:00', sym:'CAP', dir:'UP', pnl:-0.75},
+  {ch:'Both Both', dt:'28/07 09:05', sym:'ON', dir:'UP', pnl:-2.82},
+  {ch:'Both Both', dt:'28/07 09:30', sym:'BTW', dir:'UP', pnl:1.78},
+  {ch:'Both Both', dt:'28/07 09:45', sym:'BULLA', dir:'UP', pnl:1.08},
+  {ch:'Both Both', dt:'28/07 11:05', sym:'ON', dir:'DOWN', pnl:-8.30},
+  {ch:'Both Both', dt:'28/07 11:35', sym:'SOXS', dir:'UP', pnl:-1.75},
+  {ch:'Both Both', dt:'28/07 11:50', sym:'TAG', dir:'DOWN', pnl:1.13},
+  {ch:'Both Both', dt:'28/07 11:55', sym:'SOON', dir:'DOWN', pnl:-5.01},
+  {ch:'Both Both', dt:'28/07 12:15', sym:'CAP', dir:'DOWN', pnl:-0.65},
+  {ch:'Both Both', dt:'28/07 12:20', sym:'AKE', dir:'UP', pnl:-6.22}
+];
+
+function parseTs(dtStr){
+  const [dPart, tPart] = dtStr.split(' ');
+  const [day, mon] = dPart.split('/');
+  const [hh, mm] = tPart.split(':');
+  return new Date(2026, parseInt(mon)-1, parseInt(day), parseInt(hh), parseInt(mm)).getTime();
+}
+
+const allTrades = [...allTradesRaw].sort((a,b) => parseTs(a.dt) - parseTs(b.dt));
+
+let wallet = 800.0;
+let peak = 800.0;
+const tbody = document.getElementById("tb-master");
+tbody.innerHTML = "";
+
+allTrades.forEach((t, i) => {
+  const margin = wallet * 0.20;
+  const size = margin * 5;
+  const pnlRs = size * (t.pnl / 100);
+  wallet += pnlRs;
+  if(wallet > peak) peak = wallet;
+  const dd = ((peak - wallet) / peak) * 100;
+
+  const tr = document.createElement("tr");
+  tr.className = t.pnl >= 0 ? "win" : "loss";
+  tr.innerHTML = `
+    <td>${i+1}</td>
+    <td>${t.dt}</td>
+    <td class="w">${t.sym}/USDT</td>
+    <td class="b">${t.ch}</td>
+    <td class="${t.dir==='UP'?'g':'r'}">${t.dir==='UP'?'↑ UP':'↓ DOWN'}</td>
+    <td class="${t.pnl>=0?'g':'r'}" style="font-weight:700">${t.pnl>=0?'+':''}${t.pnl.toFixed(2)}%</td>
+    <td>₹${margin.toFixed(2)}</td>
+    <td>₹${size.toFixed(2)}</td>
+    <td class="${pnlRs>=0?'g':'r'}" style="font-weight:700">${pnlRs>=0?'+':''}₹${pnlRs.toFixed(2)}</td>
+    <td class="w" style="font-weight:800">₹${wallet.toFixed(2)}</td>
+    <td class="b">₹${peak.toFixed(2)}</td>
+    <td class="${dd>0?'r':'g'}">${dd > 0 ? '-' + dd.toFixed(2) + '%' : '0.00%'}</td>
+  `;
+  tbody.appendChild(tr);
+});
+</script>
+</body>
+</html>

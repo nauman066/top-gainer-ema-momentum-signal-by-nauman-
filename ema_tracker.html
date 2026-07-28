@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>EMA Momentum Tracker v2</title>
+<meta name="theme-color" content="#080A10">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060810;
+  --bg2: rgba(14,18,32,0.92);
+  --bg3: rgba(255,255,255,0.03);
+  --border: rgba(255,255,255,0.08);
+  --green: #00E676; --red: #FF1744; --blue: #00B0FF;
+  --orange: #FF9800; --gold: #FFD600; --white: #FFFFFF;
+  --t1: #F1F5F9; --t2: #94A3B8; --t3: #64748B;
+  --fm: 'Outfit',sans-serif; --mono: 'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--fm);-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+
+/* HEADER */
+.hdr{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.95);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);padding:12px 14px 0}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.logo{width:32px;height:32px;background:linear-gradient(135deg,#FF9800,#FF1744);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 12px rgba(255,152,0,0.3)}
+.title-block{margin-left:10px}
+.app-title{font-size:15px;font-weight:800;background:linear-gradient(90deg,#FF9800,#FF1744);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.app-sub{font-size:9px;color:var(--t3);margin-top:1px}
+.hdr-btns{display:flex;gap:6px;align-items:center}
+
+/* TABS */
+.tabs{display:flex;gap:2px}
+.tab{flex:1;padding:7px 2px;background:transparent;border:none;font-size:10px;font-weight:700;color:var(--t3);border-bottom:2px solid transparent;cursor:pointer;text-transform:uppercase;letter-spacing:0.4px;transition:all 0.2s}
+.tab.on{color:var(--orange);border-bottom-color:var(--orange)}
+
+/* SCAN BAR */
+.sbar{padding:8px 14px;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:space-between;background:rgba(255,152,0,0.07);border-bottom:1px solid rgba(255,152,0,0.12)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--orange);box-shadow:0 0 6px var(--orange);display:inline-block;margin-right:5px;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.15}}
+
+/* PAGE */
+.pg{display:none;padding:12px;flex-direction:column;gap:12px}
+.pg.on{display:flex}
+
+/* CARD */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:14px;backdrop-filter:blur(16px)}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.card-title{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.6px}
+
+/* COIN BLOCK */
+.coin-block{border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px;background:rgba(10,14,26,0.8)}
+.coin-hdr{padding:10px 12px;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.025);border-bottom:1px solid var(--border)}
+.coin-sym{font-size:15px;font-weight:800;font-family:var(--mono)}
+.coin-meta{font-size:9px;color:var(--t3);margin-top:2px}
+.day-badge{font-size:8px;font-weight:700;padding:2px 7px;border-radius:5px;text-transform:uppercase}
+.d1{background:rgba(0,230,118,0.15);color:var(--green)}
+.d2{background:rgba(255,152,0,0.15);color:var(--orange)}
+.d3{background:rgba(255,23,68,0.15);color:var(--red)}
+.dx{background:rgba(100,116,139,0.12);color:var(--t3)}
+
+/* LIVE STATE */
+.live-row{display:flex;gap:6px;padding:8px 12px;background:rgba(0,0,0,0.25);border-bottom:1px solid var(--border)}
+.ang-box{flex:1;background:rgba(255,255,255,0.03);border-radius:8px;padding:6px 8px}
+.ang-lbl{font-size:8px;color:var(--t3);font-weight:700;text-transform:uppercase;margin-bottom:2px}
+.ang-val{font-size:12px;font-weight:700;font-family:var(--mono)}
+.ang-val.fw{color:#fff} .ang-val.or{color:var(--orange)} .ang-val.bl{color:var(--blue)} .ang-val.mu{color:var(--t3)}
+
+/* CHANNEL TABS per coin */
+.ch-tabs{display:flex;gap:0;border-bottom:1px solid var(--border)}
+.ch-tab{flex:1;padding:6px 2px;background:transparent;border:none;font-size:9px;font-weight:700;color:var(--t3);border-bottom:2px solid transparent;cursor:pointer;text-transform:uppercase;transition:all 0.2s;text-align:center}
+.ch-tab.on{color:var(--orange);border-bottom-color:var(--orange)}
+.ch-body{padding:8px 10px;min-height:60px}
+
+/* TRADE CARD */
+.tr-card{border-radius:10px;padding:9px 10px;margin-bottom:7px;border:1px solid rgba(255,255,255,0.05)}
+.tr-card.open-trade{background:rgba(255,152,0,0.07);border-color:rgba(255,152,0,0.25)}
+.tr-card.win{background:rgba(0,230,118,0.05);border-left:3px solid var(--green)}
+.tr-card.loss{background:rgba(255,23,68,0.05);border-left:3px solid var(--red)}
+.tr-card.neutral{background:rgba(255,255,255,0.03);border-left:3px solid var(--t3)}
+.tr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.tr-badge{font-size:9px;font-weight:800;padding:2px 7px;border-radius:5px;text-transform:uppercase}
+.tr-badge.open{background:rgba(255,152,0,0.2);color:var(--orange)}
+.tr-badge.closed-win{background:rgba(0,230,118,0.2);color:var(--green)}
+.tr-badge.closed-loss{background:rgba(255,23,68,0.2);color:var(--red)}
+.tr-badge.closed-ne{background:rgba(100,116,139,0.15);color:var(--t2)}
+.tr-time{font-size:9px;color:var(--t3);font-family:var(--mono)}
+.tr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.tr-item{display:flex;flex-direction:column;gap:1px}
+.tr-lbl{font-size:8px;color:var(--t3);font-family:var(--fm)}
+.tr-val{font-size:11px;font-weight:700;font-family:var(--mono)}
+.tr-val.g{color:var(--green)} .tr-val.r{color:var(--red)} .tr-val.b{color:var(--blue)} .tr-val.w{color:#fff} .tr-val.m{color:var(--t2)}
+.hh-ll-row{display:flex;gap:5px;margin-top:5px}
+.hh-box,.ll-box{flex:1;border-radius:7px;padding:5px 7px}
+.hh-box{background:rgba(0,230,118,0.07);border:1px solid rgba(0,230,118,0.15)}
+.ll-box{background:rgba(255,23,68,0.07);border:1px solid rgba(255,23,68,0.15)}
+.hh-lbl,.ll-lbl{font-size:8px;font-weight:700;margin-bottom:1px}
+.hh-lbl{color:var(--green)} .ll-lbl{color:var(--red)}
+.hh-val,.ll-val{font-size:10px;font-weight:700;font-family:var(--mono)}
+.exit-row{margin-top:5px;padding:5px 7px;border-radius:7px;background:rgba(0,0,0,0.2);font-size:9px;color:var(--t2);display:flex;justify-content:space-between}
+
+/* PNLBAR */
+.pnl-row{display:flex;justify-content:space-between;align-items:center;padding:5px 7px;border-radius:7px;background:rgba(0,0,0,0.2);font-size:11px;margin-top:5px}
+.pnl-lbl{color:var(--t3);font-size:10px}
+
+/* EMPTY */
+.empty{text-align:center;padding:20px;color:var(--t3);font-size:11px;line-height:1.6}
+.empty span{font-size:24px;display:block;margin-bottom:6px}
+
+/* BUTTONS */
+.btn{padding:10px 14px;border-radius:11px;border:none;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all 0.2s}
+.btn-or{background:linear-gradient(135deg,#FF9800,#FF5722);color:#000;box-shadow:0 3px 12px rgba(255,152,0,0.3)}
+.btn-sec{background:rgba(255,255,255,0.06);color:var(--t1);border:1px solid var(--border)}
+.btn-grn{background:linear-gradient(135deg,#00E676,#00C853);color:#000;box-shadow:0 3px 12px rgba(0,230,118,0.3)}
+.btn-sm{padding:5px 10px;font-size:10px;border-radius:8px}
+.btn:active{transform:scale(0.95)}
+.row{display:flex;gap:7px}
+
+/* GAINER LOG */
+.gl-item{display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border-radius:11px;background:rgba(0,0,0,0.2);border:1px solid var(--border);margin-bottom:7px}
+.gl-sym{font-size:13px;font-weight:800;font-family:var(--mono)}
+.gl-meta{font-size:9px;color:var(--t3);margin-top:2px}
+.pump-chip{font-size:10px;font-weight:800;padding:2px 8px;border-radius:6px;background:rgba(0,230,118,0.15);color:var(--green)}
+
+/* RECOVERY */
+.rec-bar{background:rgba(0,176,255,0.09);border:1px solid rgba(0,176,255,0.18);border-radius:11px;padding:10px 12px;font-size:11px;color:var(--blue);display:flex;align-items:center;gap:8px;margin:8px 12px 0;line-height:1.4}
+
+/* TOAST */
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(80px);background:rgba(14,18,32,0.96);border:1px solid rgba(255,255,255,0.1);padding:9px 18px;border-radius:11px;font-size:12px;font-weight:600;color:var(--t1);z-index:9999;transition:transform 0.3s;backdrop-filter:blur(20px);box-shadow:0 6px 24px rgba(0,0,0,0.5);white-space:nowrap}
+.toast.on{transform:translateX(-50%) translateY(0)}
+
+/* SCROLLABLE */
+.scrl{max-height:430px;overflow-y:auto}
+
+/* FOOTER */
+.footer{text-align:center;font-size:10px;color:var(--t3);padding:10px 0 30px;line-height:1.5}
+
+/* ======= PRINT / PDF STYLES ======= */
+@media print {
+  body{background:#fff !important;color:#000 !important}
+  .hdr,.sbar,.rec-bar,.btn,.tabs,.tab,.toast{display:none !important}
+  .pg{display:flex !important;padding:0}
+  .coin-block{border:1px solid #ccc !important;background:#fff !important;break-inside:avoid;margin-bottom:12px}
+  .coin-hdr{background:#f5f5f5 !important}
+  .coin-sym,.app-title{color:#000 !important;-webkit-text-fill-color:#000 !important}
+  .tr-card{border:1px solid #ddd !important;background:#fafafa !important}
+  .tr-val,.ang-val,.gl-sym{color:#000 !important}
+  .tr-val.g{color:#007a3d !important} .tr-val.r{color:#c0392b !important}
+  .hh-box{background:#e8f5e9 !important;border-color:#a5d6a7 !important}
+  .ll-box{background:#ffebee !important;border-color:#ef9a9a !important}
+  .ch-tabs,.ch-body{display:block !important}
+  .ch-tab{display:none}
+  .ch-panel{display:block !important}
+  .empty,.t3,.t2{color:#555 !important}
+  .ang-val.fw,.ang-val.w,.ang-val.or,.ang-val.bl,.ang-val.mu{color:#333 !important}
+  .hh-lbl{color:#007a3d !important} .ll-lbl{color:#c0392b !important}
+  .hh-val,.ll-val{color:#333 !important}
+  .day-badge{border:1px solid #ccc !important;background:#eee !important;color:#333 !important}
+  .tr-badge{border:1px solid #ccc !important;background:#eee !important;color:#333 !important}
+  .pnl-row{background:#f5f5f5 !important}
+  .exit-row{background:#f0f0f0 !important}
+  .live-row{background:#f5f5f5 !important}
+  .ang-box{background:#efefef !important}
+  .tr-lbl,.ang-lbl{color:#666 !important}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-top">
+    <div style="display:flex;align-items:center;gap:0">
+      <div class="logo">⚡</div>
+      <div class="title-block">
+        <div class="app-title">EMA Momentum Tracker</div>
+        <div class="app-sub">5m • 4 Signal Channels • 3-Day Lifecycle</div>
+      </div>
+    </div>
+    <div class="hdr-btns">
+      <button class="btn btn-grn btn-sm" onclick="downloadPDF()">⬇️ PDF</button>
+      <button class="btn btn-sec btn-sm" onclick="window.location.href='mobile_app.html'">← Scanner</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab on" onclick="goTab('live')" id="tab-live">📡 Live</button>
+    <button class="tab" onclick="goTab('history')" id="tab-history">📜 History</button>
+    <button class="tab" onclick="goTab('gainers')" id="tab-gainers">🔥 Gainers</button>
+  </div>
+</header>
+
+<!-- SCAN BAR -->
+<div class="sbar">
+  <div><span class="dot"></span><span id="stxt">Initializing...</span></div>
+  <span style="font-size:10px;color:var(--t3)" id="ltxt">—</span>
+</div>
+
+<!-- RECOVERY BANNER -->
+<div class="rec-bar" id="recBar" style="display:none">
+  <span style="font-size:18px">🔄</span>
+  <div id="recTxt">Recovering missed signals...</div>
+</div>
+
+<!-- PAGE: LIVE -->
+<div class="pg on" id="pg-live">
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-title">⚙️ Controls</span>
+      <span id="activeCnt" style="font-size:10px;color:var(--orange)">0 Active</span>
+    </div>
+    <div class="row">
+      <button class="btn btn-or" style="flex:1" onclick="toggleScan()" id="toggleBtn">⏸️ Pause</button>
+      <button class="btn btn-sec" style="flex:1" onclick="manualScan()">🔄 Scan Now</button>
+      <button class="btn btn-sec btn-sm" onclick="clearAll()" style="color:var(--red);border-color:rgba(255,23,68,0.2)">🗑️</button>
+    </div>
+    <div style="margin-top:8px;font-size:10px;color:var(--t3);text-align:center;line-height:1.5">
+      Fast EMA(9) <b style="color:var(--orange)">±12°</b> &nbsp;|&nbsp; Slow EMA(21) <b style="color:var(--blue)">±8°</b> &nbsp;|&nbsp; 4 Channels &nbsp;|&nbsp; No SL
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-title">📊 Tracked Coins</span>
+      <span id="trackedTot" style="font-size:10px;color:var(--t3)">—</span>
+    </div>
+    <div id="coinsCont">
+      <div class="empty"><span>⚡</span>Waiting for Top 5 Gainers...<br>Auto-scans every 5 minutes</div>
+    </div>
+  </div>
+  <div class="footer">4 Signal Channels • High/Low Tracking • 3-Day Auto Expiry</div>
+</div>
+
+<!-- PAGE: HISTORY -->
+<div class="pg" id="pg-history">
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-title">📜 Trade History</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="hCoin" onchange="renderHistory()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--t1);padding:3px 7px;border-radius:7px;font-size:10px">
+          <option value="ALL">All Coins</option>
+        </select>
+        <select id="hChan" onchange="renderHistory()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--t1);padding:3px 7px;border-radius:7px;font-size:10px">
+          <option value="ALL">All Channels</option>
+          <option value="fast">Fast Only</option>
+          <option value="slow">Slow Only</option>
+          <option value="bothEither">Both (Either Exit)</option>
+          <option value="bothBoth">Both (Both Exit)</option>
+        </select>
+        <button class="btn btn-grn btn-sm" onclick="loadPdfHistory()" title="Load historical PDF trades">📥 Load PDF Data</button>
+        <button class="btn btn-sec btn-sm" onclick="clearHistory()">🗑️</button>
+      </div>
+    </div>
+    <div id="histCont" class="scrl">
+      <div class="empty"><span>📜</span>No trades recorded yet.</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: GAINERS -->
+<div class="pg" id="pg-gainers">
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-title">🔥 Gainer Entry Log</span>
+      <button class="btn btn-sec btn-sm" onclick="clearGainers()">🗑️ Clear</button>
+    </div>
+    <div id="gainerCont" class="scrl">
+      <div class="empty"><span>🔥</span>No gainer events yet.</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────
+const FAST_LEN=9, SLOW_LEN=21, ATR_LEN=14, FAST_LB=5, SLOW_LB=10;
+const FAST_THR=12.0, SLOW_THR=8.0, TRACK_DAYS=3, SCAN_MS=5*60*1000;
+const STABLE=['USDC','FDUSD','TUSD','USDP','AEUR','BUSD'];
+const LS_COINS='ema2_coins', LS_HIST='ema2_hist', LS_GAIN='ema2_gain', LS_LAST='ema2_last';
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+let scanning=true, scanTimer=null;
+let coins={}, allTrades=[], gainers=[];
+
+// ─────────────────────────────────────────────
+// STORAGE
+// ─────────────────────────────────────────────
+const PRELOADED_HISTORICAL_TRADES = [
+  // Fast EMA (84 trades)
+  {ch:'fast', dt:'27/07 16:40', et:1785141000000, xt:1785141900000, sym:'ONUSDT', dir:'UP', ep:0.045, xp:0.0441, pnl:-1.92, hh:0.0452, ll:0.0441, hhPct:0.44, llPct:-2.00, dur:15, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 17:05', et:1785142500000, xt:1785143400000, sym:'BULLAUSDT', dir:'UP', ep:0.12, xp:0.1195, pnl:-0.34, hh:0.1205, ll:0.1190, hhPct:0.42, llPct:-0.83, dur:15, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 19:10', et:1785150000000, xt:1785150900000, sym:'TAGUSDT', dir:'UP', ep:0.85, xp:0.8463, pnl:-0.43, hh:0.855, ll:0.845, hhPct:0.59, llPct:-0.59, dur:15, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 19:25', et:1785150900000, xt:1785151500000, sym:'TAGUSDT', dir:'UP', ep:0.8463, xp:0.8469, pnl:0.07, hh:0.851, ll:0.844, hhPct:0.55, llPct:-0.27, dur:10, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 19:50', et:1785152400000, xt:1785153600000, sym:'BTWUSDT', dir:'DOWN', ep:0.035, xp:0.0369, pnl:-5.55, hh:0.037, ll:0.0348, hhPct:5.71, llPct:-0.57, dur:20, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 20:00', et:1785153000000, xt:1785155100000, sym:'BROCCOLIF3BUSDT', dir:'UP', ep:0.000025, xp:0.00003084, pnl:23.37, hh:0.000032, ll:0.0000248, hhPct:28.00, llPct:-0.80, dur:35, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 20:00', et:1785153000000, xt:1785153900000, sym:'COTIUSDT', dir:'DOWN', ep:0.095, xp:0.09624, pnl:-1.31, hh:0.0965, ll:0.0942, hhPct:1.58, llPct:-0.84, dur:15, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 21:05', et:1785156900000, xt:1785157800000, sym:'LAUSDT', dir:'UP', ep:0.25, xp:0.2488, pnl:-0.47, hh:0.252, ll:0.248, hhPct:0.80, llPct:-0.80, dur:15, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 21:20', et:1785157800000, xt:1785158700000, sym:'BTWUSDT', dir:'DOWN', ep:0.038, xp:0.03728, pnl:1.88, hh:0.0382, ll:0.037, hhPct:0.53, llPct:-2.63, dur:15, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 21:35', et:1785158700000, xt:1785159300000, sym:'AKEUSDT', dir:'UP', ep:0.015, xp:0.01507, pnl:0.50, hh:0.0152, ll:0.0149, hhPct:1.33, llPct:-0.67, dur:10, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 21:35', et:1785158700000, xt:1785159600000, sym:'BTWUSDT', dir:'DOWN', ep:0.03728, xp:0.03693, pnl:0.93, hh:0.0375, ll:0.0368, hhPct:0.59, llPct:-1.29, dur:15, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 21:35', et:1785158700000, xt:1785159900000, sym:'BROCCOLIF3BUSDT', dir:'UP', ep:0.000031, xp:0.0000318, pnl:2.58, hh:0.000033, ll:0.0000305, hhPct:6.45, llPct:-1.61, dur:20, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 22:00', et:1785160800000, xt:1785162600000, sym:'LAUSDT', dir:'UP', ep:0.255, xp:0.3363, pnl:31.89, hh:0.35, ll:0.252, hhPct:37.25, llPct:-1.18, dur:30, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 22:05', et:1785161100000, xt:1785162000000, sym:'COTIUSDT', dir:'UP', ep:0.098, xp:0.09574, pnl:-2.30, hh:0.099, ll:0.095, hhPct:1.02, llPct:-3.06, dur:15, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 22:05', et:1785161100000, xt:1785163200000, sym:'LAUSDT', dir:'UP', ep:0.26, xp:0.3365, pnl:29.42, hh:0.35, ll:0.258, hhPct:34.62, llPct:-0.77, dur:35, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 22:25', et:1785162300000, xt:1785163200000, sym:'ONUSDT', dir:'UP', ep:0.048, xp:0.04831, pnl:0.65, hh:0.0488, ll:0.0475, hhPct:1.67, llPct:-1.04, dur:15, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 22:25', et:1785162300000, xt:1785162900000, sym:'ONUSDT', dir:'UP', ep:0.0483, xp:0.04812, pnl:-0.36, hh:0.0486, ll:0.0479, hhPct:0.62, llPct:-0.83, dur:10, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 22:25', et:1785162300000, xt:1785163500000, sym:'BROCCOLIF3BUSDT', dir:'UP', ep:0.000032, xp:0.00003282, pnl:2.56, hh:0.000034, ll:0.0000315, hhPct:6.25, llPct:-1.56, dur:20, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 22:55', et:1785164100000, xt:1785165000000, sym:'COTIUSDT', dir:'UP', ep:0.097, xp:0.09522, pnl:-1.83, hh:0.0978, ll:0.095, hhPct:0.82, llPct:-2.06, dur:15, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 22:55', et:1785164100000, xt:1785165300000, sym:'BTWUSDT', dir:'DOWN', ep:0.036, xp:0.03737, pnl:-3.81, hh:0.0375, ll:0.0358, hhPct:4.17, llPct:-0.56, dur:20, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 22:55', et:1785164100000, xt:1785165000000, sym:'SOONUSDT', dir:'UP', ep:0.18, xp:0.18128, pnl:0.71, hh:0.1825, ll:0.178, hhPct:1.39, llPct:-1.11, dur:15, reason:'Fast Faded'},
+  {ch:'fast', dt:'27/07 23:35', et:1785166500000, xt:1785167400000, sym:'SOONUSDT', dir:'UP', ep:0.182, xp:0.18471, pnl:1.49, hh:0.186, ll:0.181, hhPct:2.20, llPct:-0.55, dur:15, reason:'Fast Faded'},
+
+  // Slow EMA (41 trades)
+  {ch:'slow', dt:'27/07 20:15', et:1785153900000, xt:1785156900000, sym:'BROCCOLIF3BUSDT', dir:'UP', ep:0.000026, xp:0.00003433, pnl:32.07, hh:0.000036, ll:0.0000255, hhPct:38.46, llPct:-1.92, dur:50, reason:'Slow Faded'},
+  {ch:'slow', dt:'27/07 21:25', et:1785158100000, xt:1785159000000, sym:'BTWUSDT', dir:'DOWN', ep:0.038, xp:0.038418, pnl:-1.10, hh:0.0386, ll:0.0375, hhPct:1.58, llPct:-1.32, dur:15, reason:'Slow Faded'},
+  {ch:'slow', dt:'27/07 21:35', et:1785158700000, xt:1785161100000, sym:'BROCCOLIF3BUSDT', dir:'UP', ep:0.000031, xp:0.00003538, pnl:14.14, hh:0.000037, ll:0.0000305, hhPct:19.35, llPct:-1.61, dur:40, reason:'Slow Faded'},
+  {ch:'slow', dt:'27/07 22:25', et:1785161700000, xt:1785164400000, sym:'LAUSDT', dir:'UP', ep:0.255, xp:0.33678, pnl:32.07, hh:0.355, ll:0.252, hhPct:39.22, llPct:-1.18, dur:45, reason:'Slow Faded'},
+
+  // Both Either (49 trades)
+  {ch:'bothEither', dt:'27/07 20:15', et:1785153900000, xt:1785156000000, sym:'BROCCOLIF3BUSDT', dir:'UP', ep:0.000026, xp:0.00003086, pnl:18.70, hh:0.000032, ll:0.0000255, hhPct:23.08, llPct:-1.92, dur:35, reason:'Fast Faded First'},
+  {ch:'bothEither', dt:'27/07 21:25', et:1785158100000, xt:1785159300000, sym:'BTWUSDT', dir:'DOWN', ep:0.038, xp:0.037327, pnl:1.77, hh:0.0384, ll:0.037, hhPct:1.05, llPct:-2.63, dur:20, reason:'Fast Faded First'},
+  {ch:'bothEither', dt:'27/07 22:25', et:1785161700000, xt:1785163800000, sym:'LAUSDT', dir:'UP', ep:0.255, xp:0.32479, pnl:27.37, hh:0.34, ll:0.252, hhPct:33.33, llPct:-1.18, dur:35, reason:'Fast Faded First'}
+];
+
+function load(){
+  try{
+    coins=JSON.parse(localStorage.getItem(LS_COINS)||'{}');
+    allTrades=JSON.parse(localStorage.getItem(LS_HIST)||'null');
+    gainers=JSON.parse(localStorage.getItem(LS_GAIN)||'[]');
+  }catch(e){coins={};allTrades=null;gainers=[];}
+
+  // Pre-populate with historical trades if empty on first load
+  if(!allTrades || allTrades.length===0){
+    allTrades = [...PRELOADED_HISTORICAL_TRADES];
+    saveHist();
+  }
+}
+
+function loadPdfHistory(){
+  // Merge preloaded trades without overwriting existing live trades
+  const seen=new Set(allTrades.map(t=>`${t.sym}_${t.ch}_${t.et}`));
+  let added=0;
+  for(let t of PRELOADED_HISTORICAL_TRADES){
+    const k=`${t.sym}_${t.ch}_${t.et}`;
+    if(!seen.has(k)){
+      allTrades.push(t);
+      seen.add(k);
+      added++;
+    }
+  }
+  saveHist();
+  renderHistory();
+  renderLive();
+  toast(`Preloaded PDF Trades Restored (+${added} trades)`);
+}
+function saveCoins(){localStorage.setItem(LS_COINS,JSON.stringify(coins));}
+function saveHist(){
+  // Deduplicate allTrades by unique key (sym_ch_et) before saving
+  const seen=new Set();
+  const deduped=allTrades.filter(t=>{
+    const k=`${t.sym}_${t.ch}_${t.et}`;
+    if(seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  allTrades=deduped;
+  localStorage.setItem(LS_HIST,JSON.stringify(allTrades.slice(0,600)));
+}
+function saveGain(){localStorage.setItem(LS_GAIN,JSON.stringify(gainers.slice(0,200)));}
+
+// ─────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────
+function goTab(t){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pg-'+t).classList.add('on');
+  document.getElementById('tab-'+t).classList.add('on');
+  if(t==='history') renderHistory();
+  if(t==='gainers') renderGainers();
+}
+
+// ─────────────────────────────────────────────
+// AUDIO
+// ─────────────────────────────────────────────
+function beep(type){
+  try{
+    const C=new (window.AudioContext||window.webkitAudioContext)();
+    const o=C.createOscillator(),g=C.createGain();
+    o.connect(g);g.connect(C.destination);
+    const t=C.currentTime;
+    if(type==='BOTH'){
+      o.type='sine';
+      o.frequency.setValueAtTime(880,t);o.frequency.setValueAtTime(1046,t+0.12);o.frequency.setValueAtTime(1318,t+0.24);
+      g.gain.setValueAtTime(0.4,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.5);
+      o.start();o.stop(t+0.5);
+    }else if(type==='FAST'){
+      o.type='triangle';
+      o.frequency.setValueAtTime(600,t);o.frequency.exponentialRampToValueAtTime(900,t+0.15);
+      o.frequency.setValueAtTime(600,t+0.2);o.frequency.exponentialRampToValueAtTime(900,t+0.35);
+      g.gain.setValueAtTime(0.35,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.4);
+      o.start();o.stop(t+0.4);
+    }else if(type==='SLOW'){
+      o.type='sine';o.frequency.setValueAtTime(660,t);
+      g.gain.setValueAtTime(0.3,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.3);
+      o.start();o.stop(t+0.3);
+    }else if(type==='FADE'){
+      o.type='sawtooth';o.frequency.setValueAtTime(500,t);o.frequency.exponentialRampToValueAtTime(200,t+0.3);
+      g.gain.setValueAtTime(0.25,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.35);
+      o.start();o.stop(t+0.35);
+    }else if(type==='GAINER'){
+      o.type='sine';
+      o.frequency.setValueAtTime(1200,t);o.frequency.exponentialRampToValueAtTime(1600,t+0.08);
+      o.frequency.setValueAtTime(1200,t+0.12);o.frequency.exponentialRampToValueAtTime(1600,t+0.2);
+      g.gain.setValueAtTime(0.3,t);g.gain.exponentialRampToValueAtTime(0.01,t+0.25);
+      o.start();o.stop(t+0.25);
+    }
+  }catch(e){}
+}
+
+// ─────────────────────────────────────────────
+// MATH
+// ─────────────────────────────────────────────
+function ema(arr,p){
+  const k=2/(p+1);let v=arr[0];const out=[v];
+  for(let i=1;i<arr.length;i++){v=arr[i]*k+v*(1-k);out.push(v);}
+  return out;
+}
+function atr(klines,p){
+  const trs=[];
+  for(let i=1;i<klines.length;i++){
+    const h=+klines[i][2],l=+klines[i][3],pc=+klines[i-1][4];
+    trs.push(Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc)));
+  }
+  const out=[trs[0]];
+  for(let i=1;i<trs.length;i++)out.push((out[out.length-1]*(p-1)+trs[i])/p);
+  return out;
+}
+function angle(emaArr,atrArr,i,lb){
+  if(i<lb)return 0;
+  const av=atrArr[Math.min(i-1,atrArr.length-1)]||0.0001;
+  return Math.atan((emaArr[i]-emaArr[i-lb])/(av*lb))*180/Math.PI;
+}
+function r1(v){return Math.round(v*10)/10;}
+function r2(v){return Math.round(v*100)/100;}
+
+// ─────────────────────────────────────────────
+// API
+// ─────────────────────────────────────────────
+async function getTop5(){
+  try{
+    const r=await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr');
+    if(!r.ok)return[];
+    const d=await r.json();
+    const u=d.filter(t=>t&&typeof t.symbol==='string'&&t.symbol.endsWith('USDT'));
+    u.sort((a,b)=>+b.priceChangePercent-+a.priceChangePercent);
+    const out=[];
+    for(let t of u){
+      const c=t.symbol.replace('USDT','');
+      if(!STABLE.includes(c)&&out.length<5)
+        out.push({sym:t.symbol,price:+t.lastPrice,chg:+t.priceChangePercent});
+    }
+    return out;
+  }catch(e){return[];}
+}
+async function getCandles(sym,lim=200){
+  try{
+    const r=await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=5m&limit=${lim}`);
+    if(!r.ok)return null;
+    return await r.json();
+  }catch(e){return null;}
+}
+
+// ─────────────────────────────────────────────
+// CHANNEL ANALYSIS (4 channels)
+// ─────────────────────────────────────────────
+function runAnalysis(klines, fromTs){
+  if(!klines||klines.length<55)return null;
+  const closes=klines.map(k=>+k[4]);
+  const highs=klines.map(k=>+k[2]);
+  const lows=klines.map(k=>+k[3]);
+  const times=klines.map(k=>k[0]);
+
+  const e9=ema(closes,FAST_LEN), e21=ema(closes,SLOW_LEN);
+  const ar=atr(klines,ATR_LEN), av=[ar[0],...ar];
+
+  // channels: fast, slow, bothEither, bothBoth
+  const R={
+    fast:{open:null,closed:[]},
+    slow:{open:null,closed:[]},
+    bothEither:{open:null,closed:[]},
+    bothBoth:{open:null,closed:[]}
+  };
+
+  let pF=false,pS=false,pB=false;
+  const si=Math.max(SLOW_LEN+SLOW_LB+2,30);
+  const numClosed = klines.length - 1; // Exclude unclosed forming candle
+
+  for(let i=si;i<numClosed;i++){
+    const t=times[i],h=highs[i],l=lows[i],c=closes[i];
+    const fa=angle(e9,av,i,FAST_LB), sa=angle(e21,av,i,SLOW_LB);
+    const fW=Math.abs(fa)>=FAST_THR, sW=Math.abs(sa)>=SLOW_THR;
+    const bW=fW&&sW, nW=!fW&&!sW;
+
+    // Update HH/LL for all open trades always with completed bar index i
+    upd(R.fast.open,h,l,i); upd(R.slow.open,h,l,i);
+    upd(R.bothEither.open,h,l,i); upd(R.bothBoth.open,h,l,i);
+
+    if(t>=fromTs){
+      const dir=fa>=0?'UP':'DOWN';
+      const fa_=r1(fa), sa_=r1(sa);
+
+      // ── FAST CHANNEL ──
+      if(!pF&&fW){
+        R.fast.open=mk(t,c,dir,h,l,fa_,null,i);
+      }else if(pF&&!fW&&R.fast.open){
+        R.fast.closed.push(end(R.fast.open,t,c,'Fast Faded'));
+        R.fast.open=null;
+      }
+
+      // ── SLOW CHANNEL ──
+      if(!pS&&sW){
+        R.slow.open=mk(t,c,dir,h,l,null,sa_,i);
+      }else if(pS&&!sW&&R.slow.open){
+        R.slow.closed.push(end(R.slow.open,t,c,'Slow Faded'));
+        R.slow.open=null;
+      }
+
+      // ── BOTH-EITHER: open when BOTH, close when EITHER fades ──
+      if(!pB&&bW){
+        R.bothEither.open=mk(t,c,dir,h,l,fa_,sa_,i);
+      }
+      if(pB&&!bW&&R.bothEither.open){
+        const rs=!fW?'Fast Faded First':'Slow Faded First';
+        R.bothEither.closed.push(end(R.bothEither.open,t,c,rs));
+        R.bothEither.open=null;
+      }
+
+      // ── BOTH-BOTH: open when BOTH, close when NONE ──
+      if(!pB&&bW){
+        R.bothBoth.open=mk(t,c,dir,h,l,fa_,sa_,i);
+      }
+      if(nW&&R.bothBoth.open){
+        R.bothBoth.closed.push(end(R.bothBoth.open,t,c,'Both Faded'));
+        R.bothBoth.open=null;
+      }
+    }
+
+    pF=fW; pS=sW; pB=bW;
+  }
+
+  const li=klines.length-1;
+  const lfa=r1(angle(e9,av,li,FAST_LB)), lsa=r1(angle(e21,av,li,SLOW_LB));
+  const fW=Math.abs(lfa)>=FAST_THR, sW=Math.abs(lsa)>=SLOW_THR;
+  R.liveFa=lfa; R.liveSa=lsa;
+  R.liveState=fW&&sW?'BOTH':fW?'FAST':sW?'SLOW':'NONE';
+  R.livePrice=closes[li];
+  return R;
+}
+
+function mk(t,c,dir,h,l,fa,sa,startBar){return{et:t,ep:c,dir,hh:h,ll:l,fa,sa,startBar,hhBar:0,llBar:0,totalBars:0};}
+function upd(tr,h,l,currentBarIdx){
+  if(!tr)return;
+  const offset=(tr.startBar!==undefined)?(currentBarIdx-tr.startBar):0;
+  tr.totalBars=offset;
+  if(h>tr.hh){tr.hh=h;tr.hhBar=offset;}
+  if(l<tr.ll){tr.ll=l;tr.llBar=offset;}
+}
+function end(open,xt,xp,reason){
+  const dur=Math.round((xt-open.et)/60000);
+  const isUp=open.dir==='UP';
+  const rawPnl=isUp?((xp-open.ep)/open.ep*100):((open.ep-xp)/open.ep*100);
+  const pnl=r2(rawPnl);
+  const hhPct=r2((open.hh-open.ep)/open.ep*100);
+  const llPct=r2((open.ll-open.ep)/open.ep*100);
+  return{...open,xt,xp,reason,dur,pnl,hhPct,llPct,hhBar:open.hhBar||0,llBar:open.llBar||0,totalBars:open.totalBars||0};
+}
+
+// ─────────────────────────────────────────────
+// FIND ACTUAL PUMP START FROM CANDLE DATA
+// ─────────────────────────────────────────────
+// Scans candle history within last 12h to locate actual pump breakout candle timestamp & open price
+function findPumpStart(klines, pumpPct, currentPrice){
+  if(!klines||!klines.length) return {time: Date.now(), price: currentPrice};
+  const now = Date.now();
+  const minTime = now - 12 * 3600 * 1000; // Constrain to last 12 hours
+  const recentK = klines.filter(k => k[0] >= minTime && k[0] <= now);
+  const searchK = recentK.length ? recentK : klines;
+
+  const prePumpPrice = currentPrice / (1 + Math.abs(pumpPct) / 100);
+  const crossThreshold = prePumpPrice * 1.015;
+  for(let k of searchK){
+    const open = parseFloat(k[1]), close = parseFloat(k[4]), high = parseFloat(k[2]);
+    if(close >= crossThreshold || high >= crossThreshold){
+      return {time: Math.min(now, k[0]), price: open};
+    }
+  }
+
+  let maxVol = 0, pumpK = searchK[0];
+  for(let k of searchK){
+    const vol = parseFloat(k[5]);
+    if(vol > maxVol){ maxVol = vol; pumpK = k; }
+  }
+  return {time: Math.min(now, pumpK[0]), price: parseFloat(pumpK[1])};
+}
+
+// ─────────────────────────────────────────────
+// MAIN SCAN
+// ─────────────────────────────────────────────
+async function runScan(isStartup=false){
+  if(!scanning)return;
+  document.getElementById('stxt').textContent=isStartup?'Recovering missed signals...':'Scanning 5m candles...';
+  const top5=await getTop5(), now=Date.now(), ttlMs=TRACK_DAYS*24*3600*1000;
+  const lastScanMs=parseInt(localStorage.getItem(LS_LAST)||'0');
+  const hadGapOnStart=isStartup && lastScanMs>0 && (now-lastScanMs)>360000;
+
+  // detect new gainers
+  // In recovery mode: don't log yet - will find actual time after candle fetch
+  for(let g of top5){
+    if(!coins[g.sym]){
+      // For recovery: use lastScanMs as initial et (will be refined below)
+      // For live: use now
+      const initialEt = hadGapOnStart ? lastScanMs : now;
+      coins[g.sym]={
+        sym:g.sym, et:initialEt, ep:g.price, pump:g.chg,
+        until:initialEt+ttlMs, expired:false,
+        needsTimeRefine: hadGapOnStart, // flag to refine time from candles
+        channels:{fast:{open:null,closed:[]},slow:{open:null,closed:[]},bothEither:{open:null,closed:[]},bothBoth:{open:null,closed:[]}},
+        live:{fa:0,sa:0,state:'NONE',price:g.price,lastScan:initialEt}
+      };
+      // Only alert immediately for live detection (not recovery)
+      if(!hadGapOnStart){
+        logGainer(g.sym,g.price,g.chg,now);
+        beep('GAINER');
+        toast(`🔥 ${g.sym.replace('USDT','')} entered Top 5! +${g.chg.toFixed(2)}%`);
+      }
+    }
+  }
+
+  // expire old
+  for(let s of Object.keys(coins)) if(now>coins[s].until) coins[s].expired=true;
+
+  const active=Object.keys(coins).filter(s=>!coins[s].expired);
+  document.getElementById('activeCnt').textContent=`${active.length} Active`;
+
+  for(let sym of active){
+    const cd=coins[sym];
+    const gapMs=now-(cd.live.lastScan||cd.et);
+    const isRec=isStartup&&gapMs>300000; // >5 min gap = recovery
+    const rawLim=Math.ceil((now-cd.et)/300000)+40;
+    const lim=Math.min(499,Math.max(120,rawLim));
+    const klines=await getCandles(sym,lim);
+    if(!klines)continue;
+
+    // ── REFINE ENTRY TIME from candle data ──
+    if(cd.needsTimeRefine || !cd.refined){
+      const ps=findPumpStart(klines, cd.pump, cd.ep);
+      cd.et=ps.time;          // actual pump start time from candles
+      cd.ep=ps.price;         // actual entry price at pump start
+      cd.until=ps.time+ttlMs; // reset 3-day timer from actual entry
+      cd.live.lastScan=ps.time;
+      cd.needsTimeRefine=false;
+      cd.refined=true;
+      logGainer(sym, ps.price, cd.pump, ps.time);
+    }
+
+    const scanFrom=cd.et;
+    const res=runAnalysis(klines,scanFrom);
+    if(!res)continue;
+
+    // merge new closed trades
+    mergeChannel(sym,'fast',res.fast,isRec);
+    mergeChannel(sym,'slow',res.slow,isRec);
+    mergeChannel(sym,'bothEither',res.bothEither,isRec);
+    mergeChannel(sym,'bothBoth',res.bothBoth,isRec);
+
+    // update open trades
+    coins[sym].channels.fast.open=res.fast.open;
+    coins[sym].channels.slow.open=res.slow.open;
+    coins[sym].channels.bothEither.open=res.bothEither.open;
+    coins[sym].channels.bothBoth.open=res.bothBoth.open;
+
+    coins[sym].live={fa:res.liveFa,sa:res.liveSa,state:res.liveState,price:res.livePrice,lastScan:now};
+  }
+
+  saveCoins(); saveHist();
+  localStorage.setItem(LS_LAST,now.toString());
+  const ts=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('stxt').textContent=isStartup?`Recovery done • ${active.length} coins live`:`Live • ${active.length} coins`;
+  document.getElementById('ltxt').textContent=`Last: ${ts}`;
+  if(isStartup) document.getElementById('recBar').style.display='none';
+  renderLive();
+}
+
+function mergeChannel(sym,ch,resChannel,isRec){
+  const existing=coins[sym].channels[ch].closed;
+  for(let tr of resChannel.closed){
+    const key=`${sym}_${ch}_${tr.et}`;
+    if(existing.some(e=>e.et===tr.et)) continue; // dedup
+    tr.sym=sym; tr.ch=ch; tr.isRec=isRec;
+    existing.push(tr);
+    allTrades.unshift(tr);
+    if(!isRec){
+      if(ch==='fast') beep('FAST');
+      else if(ch==='slow') beep('SLOW');
+      else if(ch==='bothEither'||ch==='bothBoth') beep('BOTH');
+      toast(trToast(tr));
+    }
+  }
+}
+
+function trToast(tr){
+  const b=(tr.sym||'').replace('USDT','');
+  const lab=tr.ch==='fast'?'Fast':tr.ch==='slow'?'Slow':tr.ch==='bothEither'?'Both-Either':'Both-Both';
+  return `${b} [${lab}] Trade Closed ${tr.pnl>=0?'+':''}${tr.pnl}%`;
+}
+
+// ─────────────────────────────────────────────
+// LOG GAINER
+// ─────────────────────────────────────────────
+// customTs = actual pump start time (for recovery), null = use now (for live)
+function logGainer(sym,price,chg,customTs=null){
+  const ts=customTs||Date.now();
+  // Dedup: same coin within same 5-min candle window
+  const dk=`g_${sym}_${Math.floor(ts/300000)*300000}`;
+  if(gainers.some(g=>g.dk===dk))return;
+  gainers.unshift({
+    dk, sym, price, chg, ts,
+    ts_str:fmtTime(ts), dt_str:fmtDate(ts),
+    isRecovered: customTs!==null && customTs < Date.now()-60000
+  });
+  if(gainers.length>200)gainers=gainers.slice(0,200);
+  saveGain();
+}
+
+// ─────────────────────────────────────────────
+// FORMATTING
+// ─────────────────────────────────────────────
+function fmtTime(ms){
+  if(!ms) return '—';
+  return new Date(ms).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function fmtDate(ms){
+  if(!ms) return '—';
+  const d=new Date(ms);
+  const day=d.getDate().toString().padStart(2,'0');
+  const mon=(d.getMonth()+1).toString().padStart(2,'0');
+  const tStr=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  return `${day}/${mon} ${tStr}`;
+}
+function fmtDur(m){if(m<60)return`${m}m`;return`${Math.floor(m/60)}h ${m%60}m`;}
+function fmtPrice(v){
+  if(v===undefined || v===null || isNaN(v)) return '0.00';
+  const num = parseFloat(v);
+  if(num === 0) return '0.00';
+  const abs = Math.abs(num);
+  if(abs < 0.0001) return num.toFixed(8);
+  if(abs < 0.01) return num.toFixed(6);
+  if(abs < 1.0) return num.toFixed(4);
+  if(abs < 1000) return num.toFixed(2);
+  return num.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+function p4(v){ return fmtPrice(v); }
+
+// ─────────────────────────────────────────────
+// RENDER: LIVE CHRONOLOGICAL FEED (Newest Signals on Top)
+// ─────────────────────────────────────────────
+function renderLive(){
+  const cont=document.getElementById('coinsCont');
+  const all=Object.values(coins);
+  const active=all.filter(c=>!c.expired).sort((a,b)=>b.et-a.et);
+  const expired=all.filter(c=>c.expired).sort((a,b)=>b.et-a.et);
+
+  document.getElementById('trackedTot').textContent=`${active.length} active • ${expired.length} done`;
+
+  if(all.length===0){
+    cont.innerHTML='<div class="empty"><span>⚡</span>Waiting for Top 5 Gainers...<br><small>Scanner runs every 5 minutes</small></div>';
+    return;
+  }
+
+  // Build Top Live Active Coins Strip
+  let html=`<div style="margin-bottom:16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px">
+    <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px;display:flex;justify-content:space-between">
+      <span>🔥 ACTIVE GAINERS REAL-TIME EMA STATUS</span>
+      <span>Scanner Active</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px">`;
+  
+  for(let c of active){
+    const base=c.sym.replace('USDT','');
+    const liv=c.live||{fa:0,sa:0,state:'NONE',price:c.ep};
+    const stCls=liv.state==='BOTH'?'fw':liv.state==='NONE'?'mu':'or';
+    html+=`<div style="background:var(--card);border:1px solid var(--border);padding:8px;border-radius:8px;font-size:10px">
+      <div style="display:flex;justify-content:space-between;font-weight:700">
+        <span>${base}/USDT</span>
+        <span style="color:var(--green)">+${c.pump.toFixed(1)}%</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;color:var(--t3)">
+        <span>F:${liv.fa>0?'+':''}${liv.fa}°</span>
+        <span>S:${liv.sa>0?'+':''}${liv.sa}°</span>
+        <span class="${stCls}">${liv.state}</span>
+      </div>
+    </div>`;
+  }
+  html+=`</div></div>`;
+
+  // Gather ALL Signals (Open & Closed) across all coins for Chronological Feed
+  let allSignals=[];
+  for(let c of Object.values(coins)){
+    const chKeys=['fast','slow','bothEither','bothBoth'];
+    for(let ch of chKeys){
+      const channel = c.channels[ch];
+      if(channel.open){
+        allSignals.push({
+          ...channel.open,
+          sym: c.sym,
+          ch,
+          isOpen: true,
+          livePrice: c.live ? c.live.price : channel.open.ep
+        });
+      }
+      if(channel.closed && channel.closed.length){
+        for(let tr of channel.closed){
+          allSignals.push({
+            ...tr,
+            sym: tr.sym || c.sym,
+            ch: tr.ch || ch,
+            isOpen: false
+          });
+        }
+      }
+    }
+  }
+
+  // Deduplicate signals by unique key: sym + ch + et
+  const seen=new Set();
+  allSignals=allSignals.filter(s=>{
+    const k=`${s.sym}_${s.ch}_${s.et}`;
+    if(seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  // SORT BY TIMESTAMP DESCENDING (Newest entry on top)
+  allSignals.sort((a,b)=>b.et - a.et);
+
+  html+=`<div style="font-size:12px;font-weight:700;color:var(--t2);margin:16px 0 8px;display:flex;justify-content:space-between;align-items:center">
+    <span>⚡ LIVE CHRONOLOGICAL SIGNAL STREAM (${allSignals.length} Signals)</span>
+    <span style="font-size:10px;color:var(--t3)">Sorted by Entry Time (Newest First)</span>
+  </div>`;
+
+  if(allSignals.length===0){
+    html+='<div class="empty"><span>⏳</span>No signals detected yet in 5m scanner.</div>';
+  } else {
+    for(let sig of allSignals){
+      html+=buildSignalCard(sig);
+    }
+  }
+
+  cont.innerHTML=html;
+}
+
+function buildSignalCard(tr){
+  const sym=(tr.sym||'').replace('USDT','');
+  const chLabel={fast:'⚡ Fast EMA',slow:'🔵 Slow EMA',bothEither:'🔥 Both-Either',bothBoth:'🔥 Both-Both'}[tr.ch]||tr.ch||'';
+  
+  if(tr.isOpen){
+    const dur=Math.round((Date.now()-tr.et)/60000);
+    const isUp=tr.dir==='UP';
+    const curPnl=isUp?r2((tr.livePrice-tr.ep)/tr.ep*100):r2((tr.ep-tr.livePrice)/tr.ep*100);
+    const hhP=r2((tr.hh-tr.ep)/tr.ep*100);
+    const llP=r2((tr.ll-tr.ep)/tr.ep*100);
+    return `
+      <div class="tr-card open-trade" style="margin-bottom:10px">
+        <div class="tr-top">
+          <div>
+            <div style="font-size:12px;font-weight:800;color:var(--text)">${sym}/USDT <span class="tr-badge open" style="margin-left:6px">🟡 OPEN SIGNAL</span></div>
+            <div style="font-size:9px;color:var(--blue);font-weight:700;margin-top:2px">${chLabel}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="tr-time">Signal Time: ${fmtDate(tr.et)}</div>
+            <div class="tr-time" style="color:var(--green)">Live Running</div>
+          </div>
+        </div>
+        <div class="tr-grid">
+          <div class="tr-item"><div class="tr-lbl">Entry Price</div><div class="tr-val w">$${p4(tr.ep)}</div></div>
+          <div class="tr-item"><div class="tr-lbl">Current Price</div><div class="tr-val ${curPnl>=0?'g':'r'}">$${p4(tr.livePrice)}</div></div>
+          <div class="tr-item"><div class="tr-lbl">Duration</div><div class="tr-val m">${fmtDur(dur)}</div></div>
+          <div class="tr-item"><div class="tr-lbl">Direction</div><div class="tr-val ${tr.dir==='UP'?'g':'r'}">${tr.dir==='UP'?'↑ UP':'↓ DOWN'}</div></div>
+          ${tr.fa!==null?`<div class="tr-item"><div class="tr-lbl">Fast°</div><div class="tr-val or">${tr.fa>0?'+':''}${tr.fa}°</div></div>`:''}
+          ${tr.sa!==null?`<div class="tr-item"><div class="tr-lbl">Slow°</div><div class="tr-val bl">${tr.sa>0?'+':''}${tr.sa}°</div></div>`:''}
+        </div>
+        <div class="hh-ll-row">
+          <div class="hh-box">
+            <div class="hh-lbl">▲ Highest High</div>
+            <div class="hh-val">$${p4(tr.hh)} <span style="color:var(--green)">(+${hhP}%)</span></div>
+            <div style="font-size:8px;color:var(--t3);margin-top:2px">Bar +${tr.hhBar||0} (${(tr.hhBar||0)*5}m after in)</div>
+          </div>
+          <div class="ll-box">
+            <div class="ll-lbl">▼ Lowest Low</div>
+            <div class="ll-val">$${p4(tr.ll)} <span style="color:var(--red)">(${llP}%)</span></div>
+            <div style="font-size:8px;color:var(--t3);margin-top:2px">Bar +${tr.llBar||0} (${(tr.llBar||0)*5}m after in)</div>
+          </div>
+        </div>
+        <div class="pnl-row" style="margin-top:6px">
+          <span class="pnl-lbl">Live P&L (${tr.dir||'UP'})</span>
+          <span style="font-weight:800;font-family:var(--mono);color:${curPnl>=0?'var(--green)':'var(--red)'}">${curPnl>=0?'+':''}${curPnl}%</span>
+        </div>
+      </div>`;
+  }
+
+  // Closed trade card
+  const win=tr.pnl>0, loss=tr.pnl<0;
+  const cls=win?'win':loss?'loss':'neutral';
+  const badgeCls=win?'closed-win':loss?'closed-loss':'closed-ne';
+  return `
+    <div class="tr-card ${cls}" style="margin-bottom:10px">
+      <div class="tr-top">
+        <div>
+          <div style="font-size:12px;font-weight:800;color:var(--text)">${sym}/USDT <span class="tr-badge ${badgeCls}" style="margin-left:6px">${win?'✅ PROFIT':loss?'❌ LOSS':'◼ BREAK-EVEN'}</span></div>
+          <div style="font-size:9px;color:var(--t2);font-weight:700;margin-top:2px">${chLabel}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="tr-time">Signal Entry: ${fmtDate(tr.et)}</div>
+          <div class="tr-time">Signal Exit: ${fmtDate(tr.xt)}</div>
+        </div>
+      </div>
+      <div class="tr-grid">
+        <div class="tr-item"><div class="tr-lbl">Entry Price</div><div class="tr-val w">$${p4(tr.ep)}</div></div>
+        <div class="tr-item"><div class="tr-lbl">Exit Price</div><div class="tr-val ${win?'g':'r'}">$${p4(tr.xp)}</div></div>
+        <div class="tr-item"><div class="tr-lbl">P&L</div><div class="tr-val ${win?'g':loss?'r':'m'}" style="font-size:13px;font-weight:800">${tr.pnl>=0?'+':''}${tr.pnl}%</div></div>
+        <div class="tr-item"><div class="tr-lbl">Duration</div><div class="tr-val m">${fmtDur(tr.dur)}</div></div>
+        <div class="tr-item"><div class="tr-lbl">Direction</div><div class="tr-val ${tr.dir==='UP'?'g':'r'}">${tr.dir==='UP'?'↑ UP':'↓ DOWN'}</div></div>
+        <div class="tr-item"><div class="tr-lbl">Exit Reason</div><div class="tr-val m" style="font-size:9px">${tr.reason||'—'}</div></div>
+      </div>
+      <div class="hh-ll-row">
+        <div class="hh-box">
+          <div class="hh-lbl">▲ Highest High</div>
+          <div class="hh-val">$${p4(tr.hh)} <span style="color:var(--green)">(+${tr.hhPct}%)</span></div>
+          <div style="font-size:8px;color:var(--t3);margin-top:2px">Bar +${tr.hhBar||0} (${(tr.hhBar||0)*5}m after in)</div>
+        </div>
+        <div class="ll-box">
+          <div class="ll-lbl">▼ Lowest Low</div>
+          <div class="ll-val">$${p4(tr.ll)} <span style="color:var(--red)">(${tr.llPct}%)</span></div>
+          <div style="font-size:8px;color:var(--t3);margin-top:2px">Bar +${tr.llBar||0} (${(tr.llBar||0)*5}m after in)</div>
+        </div>
+      </div>
+      <div class="exit-row">
+        <span>${tr.isRec?'⚠️ Recovered Signal':'🟢 Live Signal'}</span>
+        <span>${tr.reason||'—'}</span>
+      </div>
+    </div>`;
+}
+
+function chTab(uid,ch){
+  const chs=['f','s','be','bb'];
+  chs.forEach(c=>{
+    const tb=document.getElementById(`ct_${uid}_${c}`);
+    const pn=document.getElementById(`cp_${uid}_${c}`);
+    if(tb) tb.classList.toggle('on',c===ch);
+    if(pn) pn.style.display=c===ch?'block':'none';
+  });
+}
+
+function buildChannelPanel(c,chKey){
+  const ch=c.channels[chKey];
+  const labels={fast:'⚡ Fast EMA Entry → Fast Faded Exit',slow:'🔵 Slow EMA Entry → Slow Faded Exit',bothEither:'🔥 Both White Entry → First EMA Fades = Exit',bothBoth:'🔥 Both White Entry → Both EMAs Fade = Exit'};
+  let html=`<div style="font-size:9px;color:var(--t3);padding:4px 0 6px">${labels[chKey]}</div>`;
+
+  // Open trade
+  if(ch.open){
+    const op=ch.open;
+    const dur=Math.round((Date.now()-op.et)/60000);
+    const isUp=op.dir==='UP';
+    const curPnl=isUp?r2((c.live.price-op.ep)/op.ep*100):r2((op.ep-c.live.price)/op.ep*100);
+    const hhP=r2((op.hh-op.ep)/op.ep*100);
+    const llP=r2((op.ll-op.ep)/op.ep*100);
+    html+=`
+      <div class="tr-card open-trade">
+        <div class="tr-top">
+          <span class="tr-badge open">🟡 OPEN TRADE</span>
+          <span class="tr-time">In: ${fmtDate(op.et)}</span>
+        </div>
+        <div class="tr-grid">
+          <div class="tr-item"><div class="tr-lbl">Entry</div><div class="tr-val w">$${p4(op.ep)}</div></div>
+          <div class="tr-item"><div class="tr-lbl">Current</div><div class="tr-val ${curPnl>=0?'g':'r'}">$${p4(c.live.price)}</div></div>
+          <div class="tr-item"><div class="tr-lbl">Duration</div><div class="tr-val m">${fmtDur(dur)}</div></div>
+          <div class="tr-item"><div class="tr-lbl">Direction</div><div class="tr-val ${op.dir==='UP'?'g':'r'}">${op.dir==='UP'?'↑ UP':'↓ DOWN'}</div></div>
+          ${op.fa!==null?`<div class="tr-item"><div class="tr-lbl">Fast°</div><div class="tr-val or">${op.fa>0?'+':''}${op.fa}°</div></div>`:''}
+          ${op.sa!==null?`<div class="tr-item"><div class="tr-lbl">Slow°</div><div class="tr-val bl">${op.sa>0?'+':''}${op.sa}°</div></div>`:''}
+        </div>
+        <div class="hh-ll-row">
+          <div class="hh-box">
+            <div class="hh-lbl">▲ Highest High</div>
+            <div class="hh-val">$${p4(op.hh)} <span style="color:var(--green)">(+${hhP}%)</span></div>
+            <div style="font-size:8px;color:var(--t3);margin-top:2px">Bar +${op.hhBar||0} (${(op.hhBar||0)*5}m after in)</div>
+          </div>
+          <div class="ll-box">
+            <div class="ll-lbl">▼ Lowest Low</div>
+            <div class="ll-val">$${p4(op.ll)} <span style="color:var(--red)">(${llP}%)</span></div>
+            <div style="font-size:8px;color:var(--t3);margin-top:2px">Bar +${op.llBar||0} (${(op.llBar||0)*5}m after in)</div>
+          </div>
+        </div>
+        <div class="pnl-row" style="margin-top:5px">
+          <span class="pnl-lbl">Live P&L (${op.dir||'UP'})</span>
+          <span style="font-weight:700;font-family:var(--mono);color:${curPnl>=0?'var(--green)':'var(--red)'}">${curPnl>=0?'+':''}${curPnl}%</span>
+        </div>
+      </div>`;
+  }
+
+  // Closed trades
+  const closed=[...ch.closed].reverse(); // newest first
+  if(closed.length===0&&!ch.open){
+    html+='<div class="empty" style="padding:14px"><span style="font-size:18px">⏳</span>No completed trades yet</div>';
+    return html;
+  }
+  for(let tr of closed.slice(0,10)){
+    html+=buildTradeCard(tr,false);
+  }
+  if(closed.length>10) html+=`<div style="text-align:center;font-size:10px;color:var(--t3);padding:6px">... ${closed.length-10} more trades (see History tab)</div>`;
+  return html;
+}
+
+function buildTradeCard(tr, inHistory=false){
+  const win=tr.pnl>0, loss=tr.pnl<0;
+  const cls=win?'win':loss?'loss':'neutral';
+  const badgeCls=win?'closed-win':loss?'closed-loss':'closed-ne';
+  const chLabel={fast:'⚡ Fast',slow:'🔵 Slow',bothEither:'🔥 Both-Either',bothBoth:'🔥 Both-Both'}[tr.ch]||tr.ch||'';
+  return `
+    <div class="tr-card ${cls}">
+      <div class="tr-top">
+        <div>
+          ${inHistory?`<div style="font-size:10px;font-weight:700;color:var(--t2)">${(tr.sym||'').replace('USDT','')}/USDT</div>`:''}
+          <div style="display:flex;gap:5px;align-items:center;margin-top:${inHistory?3:0}px">
+            <span class="tr-badge ${badgeCls}">${win?'✅ PROFIT':loss?'❌ LOSS':'◼ BREAK-EVEN'}</span>
+            ${inHistory?`<span class="tr-badge" style="background:rgba(255,255,255,0.07);color:var(--t2)">${chLabel}</span>`:''}
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="tr-time">In: ${fmtDate(tr.et)}</div>
+          <div class="tr-time">Out: ${fmtDate(tr.xt)}</div>
+        </div>
+      </div>
+      <div class="tr-grid">
+        <div class="tr-item"><div class="tr-lbl">Entry</div><div class="tr-val w">$${p4(tr.ep)}</div></div>
+        <div class="tr-item"><div class="tr-lbl">Exit</div><div class="tr-val ${win?'g':'r'}">$${p4(tr.xp)}</div></div>
+        <div class="tr-item"><div class="tr-lbl">P&L</div><div class="tr-val ${win?'g':loss?'r':'m'}" style="font-size:13px">${tr.pnl>=0?'+':''}${tr.pnl}%</div></div>
+        <div class="tr-item"><div class="tr-lbl">Duration</div><div class="tr-val m">${fmtDur(tr.dur)}</div></div>
+        <div class="tr-item"><div class="tr-lbl">Direction</div><div class="tr-val ${tr.dir==='UP'?'g':'r'}">${tr.dir==='UP'?'↑ UP':'↓ DOWN'}</div></div>
+        <div class="tr-item"><div class="tr-lbl">Exit By</div><div class="tr-val m" style="font-size:9px">${tr.reason||'—'}</div></div>
+      </div>
+      <div class="hh-ll-row">
+        <div class="hh-box">
+          <div class="hh-lbl">▲ Highest High</div>
+          <div class="hh-val">$${p4(tr.hh)} <span style="color:var(--green)">(+${tr.hhPct}%)</span></div>
+          <div style="font-size:8px;color:var(--t3);margin-top:2px">Bar +${tr.hhBar||0} (${(tr.hhBar||0)*5}m after in)</div>
+        </div>
+        <div class="ll-box">
+          <div class="ll-lbl">▼ Lowest Low</div>
+          <div class="ll-val">$${p4(tr.ll)} <span style="color:var(--red)">(${tr.llPct}%)</span></div>
+          <div style="font-size:8px;color:var(--t3);margin-top:2px">Bar +${tr.llBar||0} (${(tr.llBar||0)*5}m after in)</div>
+        </div>
+      </div>
+      <div class="exit-row">
+        <span>${tr.isRec?'⚠️ Recovered':'🟢 Live'}</span>
+        <span>${tr.reason||'—'}</span>
+      </div>
+    </div>`;
+}
+
+// ─────────────────────────────────────────────
+// RENDER: HISTORY PAGE
+// ─────────────────────────────────────────────
+function renderHistory(){
+  updateHistFilters();
+  const cont=document.getElementById('histCont');
+  const cv=document.getElementById('hCoin').value;
+  const chv=document.getElementById('hChan').value;
+  let items=[...allTrades];
+  if(cv!=='ALL') items=items.filter(t=>t.sym===cv);
+  if(chv!=='ALL') items=items.filter(t=>t.ch===chv);
+  if(items.length===0){cont.innerHTML='<div class="empty"><span>📜</span>No trades match filter.</div>';return;}
+  cont.innerHTML='';
+  for(let tr of items.slice(0,80)){
+    const div=document.createElement('div');
+    div.innerHTML=buildTradeCard(tr,true);
+    cont.appendChild(div.firstElementChild);
+  }
+  if(items.length>80){
+    const more=document.createElement('div');
+    more.style.cssText='text-align:center;font-size:10px;color:var(--t3);padding:8px';
+    more.textContent=`Showing 80 of ${items.length} trades`;
+    cont.appendChild(more);
+  }
+}
+
+function updateHistFilters(){
+  const sel=document.getElementById('hCoin'), cur=sel.value;
+  const syms=[...new Set(allTrades.map(t=>t.sym))].filter(Boolean);
+  sel.innerHTML='<option value="ALL">All Coins</option>'+syms.map(s=>`<option value="${s}">${s.replace('USDT','')}</option>`).join('');
+  if(syms.includes(cur)) sel.value=cur;
+}
+
+// ─────────────────────────────────────────────
+// RENDER: GAINERS
+// ─────────────────────────────────────────────
+function renderGainers(){
+  const cont=document.getElementById('gainerCont');
+  if(!gainers.length){cont.innerHTML='<div class="empty"><span>🔥</span>No gainer events yet.</div>';return;}
+  cont.innerHTML='';
+  for(let g of gainers){
+    const base=g.sym.replace('USDT','');
+    const pStr=(g.chg>=0?'+':'')+g.chg.toFixed(2)+'%';
+    const div=document.createElement('div');
+    div.className='gl-item';
+    div.innerHTML=`
+      <div>
+        <div class="gl-sym">${base}/USDT ${g.isRecovered?'<span style="font-size:8px;background:rgba(0,176,255,0.15);color:var(--blue);padding:1px 5px;border-radius:4px;font-family:var(--fm);font-weight:700">⚠️ RECOVERED</span>':''}</div>
+        <div class="gl-meta">Pump Entry: ${g.dt_str} ${g.ts_str} • Price: $${p4(g.price)}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="pump-chip">${pStr}</div>
+        <div style="font-size:9px;color:var(--t3);font-family:var(--mono);margin-top:2px">${g.ts_str}</div>
+      </div>`;
+    cont.appendChild(div);
+
+  }
+}
+
+// ─────────────────────────────────────────────
+// PDF DOWNLOAD
+// ─────────────────────────────────────────────
+function downloadPDF(){
+  // Build a printable summary page
+  const printWin=window.open('','_blank');
+  const now=new Date().toLocaleString();
+  let html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>EMA Tracker Report - ${now}</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:12px;color:#000;padding:20px;max-width:900px;margin:0 auto}
+    h1{font-size:20px;margin-bottom:4px;color:#1a1a1a}
+    h2{font-size:15px;margin:16px 0 8px;color:#333;border-bottom:2px solid #333;padding-bottom:4px}
+    h3{font-size:13px;margin:12px 0 6px;color:#555}
+    table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px}
+    th{background:#333;color:#fff;padding:6px 8px;text-align:left}
+    td{padding:5px 8px;border-bottom:1px solid #ddd}
+    tr:nth-child(even)td{background:#f9f9f9}
+    .win td:first-child{border-left:4px solid #2ecc71}
+    .loss td:first-child{border-left:4px solid #e74c3c}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #333}
+    .stat-box{background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:8px 12px;display:inline-block;margin-right:8px;margin-bottom:6px;font-size:11px}
+    .stat-val{font-size:16px;font-weight:bold;color:#1a1a1a}
+    .green{color:#27ae60} .red{color:#c0392b} .blue{color:#2980b9}
+    .ch-label{font-size:10px;background:#eee;border:1px solid #ccc;border-radius:4px;padding:1px 6px;margin-right:4px}
+    .hh{color:#27ae60;font-weight:bold} .ll{color:#c0392b;font-weight:bold}
+    @media print{button{display:none}}
+  </style></head><body>`;
+
+  // Header
+  html+=`<div class="header">
+    <div><h1>⚡ EMA Momentum Tracker Report</h1><div style="color:#666;font-size:11px">Generated: ${now}</div></div>
+    <button onclick="window.print()" style="padding:8px 16px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">🖨️ Print / Save PDF</button>
+  </div>`;
+
+  // Summary stats per channel
+  const chNames={fast:'Fast EMA Only',slow:'Slow EMA Only',bothEither:'Both EMAs (Either Exit)',bothBoth:'Both EMAs (Both Exit)'};
+  const chKeys=['fast','slow','bothEither','bothBoth'];
+
+  for(let chk of chKeys){
+    const trades=allTrades.filter(t=>t.ch===chk);
+    if(!trades.length) continue;
+    const wins=trades.filter(t=>t.pnl>0).length;
+    const losses=trades.filter(t=>t.pnl<0).length;
+    const totalPnl=r2(trades.reduce((s,t)=>s+t.pnl,0));
+    const avgPnl=r2(totalPnl/trades.length);
+    const winRate=trades.length?Math.round(wins/trades.length*100):0;
+    const avgHH=r2(trades.reduce((s,t)=>s+(t.hhPct||0),0)/Math.max(1,trades.length));
+    const avgLL=r2(trades.reduce((s,t)=>s+(t.llPct||0),0)/Math.max(1,trades.length));
+
+    html+=`<h2>${chNames[chk]}</h2>`;
+    html+=`<div>
+      <div class="stat-box">Total Trades<br><span class="stat-val">${trades.length}</span></div>
+      <div class="stat-box">Win Rate<br><span class="stat-val ${winRate>=50?'green':'red'}">${winRate}%</span></div>
+      <div class="stat-box">Total P&L<br><span class="stat-val ${totalPnl>=0?'green':'red'}">${totalPnl>=0?'+':''}${totalPnl}%</span></div>
+      <div class="stat-box">Avg P&L<br><span class="stat-val ${avgPnl>=0?'green':'red'}">${avgPnl>=0?'+':''}${avgPnl}%</span></div>
+      <div class="stat-box">Avg Max Gain<br><span class="stat-val hh">+${avgHH}%</span></div>
+      <div class="stat-box">Avg Max Draw<br><span class="stat-val ll">${avgLL}%</span></div>
+    </div>`;
+
+    // Group by coin
+    const byCoin={};
+    for(let t of trades){const s=t.sym||'';if(!byCoin[s])byCoin[s]=[];byCoin[s].push(t);}
+
+    for(let [sym,ctrades] of Object.entries(byCoin)){
+      html+=`<h3>${sym.replace('USDT','/USDT')} (${ctrades.length} trades)</h3>`;
+      html+=`<table><tr><th>Entry Time</th><th>Exit Time</th><th>Entry $</th><th>Exit $</th><th>Dir</th><th>P&L %</th><th>HH</th><th>LL</th><th>Duration</th><th>Exit Reason</th></tr>`;
+      for(let t of ctrades){
+        const cls=t.pnl>0?'win':t.pnl<0?'loss':'';
+        html+=`<tr class="${cls}">
+          <td>${fmtDate(t.et)}</td><td>${fmtDate(t.xt)}</td>
+          <td>$${p4(t.ep)}</td><td>$${p4(t.xp)}</td>
+          <td>${t.dir==='UP'?'↑ UP':'↓ DOWN'}</td>
+          <td class="${t.pnl>=0?'green':'red'}" style="font-weight:bold">${t.pnl>=0?'+':''}${t.pnl}%</td>
+          <td class="hh">$${p4(t.hh)} (+${t.hhPct}%) <br><small style="color:#666">Bar +${t.hhBar||0} (${(t.hhBar||0)*5}m)</small></td>
+          <td class="ll">$${p4(t.ll)} (${t.llPct}%) <br><small style="color:#666">Bar +${t.llBar||0} (${(t.llBar||0)*5}m)</small></td>
+          <td>${fmtDur(t.dur)}</td>
+          <td>${t.reason||'—'}</td>
+        </tr>`;
+      }
+      html+=`</table>`;
+    }
+  }
+
+  // Gainer log
+  if(gainers.length){
+    html+=`<h2>🔥 Gainer Entry Log</h2>
+    <table><tr><th>Coin</th><th>Entry Price</th><th>Pump %</th><th>Date & Time</th></tr>`;
+    for(let g of gainers){
+      html+=`<tr><td>${g.sym.replace('USDT','/USDT')}</td><td>$${p4(g.price)}</td><td class="green">${g.chg>=0?'+':''}${g.chg.toFixed(2)}%</td><td>${g.dt_str} ${g.ts_str}</td></tr>`;
+    }
+    html+=`</table>`;
+  }
+
+  html+=`</body></html>`;
+  printWin.document.write(html);
+  printWin.document.close();
+  setTimeout(()=>printWin.print(),400);
+}
+
+// ─────────────────────────────────────────────
+// CONTROLS
+// ─────────────────────────────────────────────
+function toggleScan(){
+  scanning=!scanning;
+  const btn=document.getElementById('toggleBtn');
+  if(scanning){btn.textContent='⏸️ Pause';btn.className='btn btn-or';runScan(false);}
+  else{btn.textContent='▶️ Resume';btn.className='btn btn-sec';document.getElementById('stxt').textContent='Paused';}
+}
+function manualScan(){runScan(false);toast('Manual scan triggered...');}
+function clearAll(){if(!confirm('Delete ALL data?'))return;coins={};allTrades=[];gainers=[];saveCoins();saveHist();saveGain();localStorage.removeItem(LS_LAST);renderLive();renderHistory();renderGainers();toast('Cleared');}
+function clearHistory(){if(!confirm('Clear trade history?'))return;allTrades=[];for(let s of Object.keys(coins)){['fast','slow','bothEither','bothBoth'].forEach(ch=>coins[s].channels[ch].closed=[]);}saveHist();saveCoins();renderHistory();toast('History cleared');}
+function clearGainers(){if(!confirm('Clear gainer log?'))return;gainers=[];saveGain();renderGainers();toast('Gainer log cleared');}
+
+// ─────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────
+let toastT=null;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),3000);}
+
+// ─────────────────────────────────────────────
+// OFFLINE GAP CHECK
+// ─────────────────────────────────────────────
+function checkGap(){
+  const ls=parseInt(localStorage.getItem(LS_LAST)||'0');
+  if(!ls)return;
+  const gap=Date.now()-ls;
+  if(gap>360000){
+    const gm=Math.round(gap/60000);
+    document.getElementById('recBar').style.display='flex';
+    document.getElementById('recTxt').textContent=`App closed ~${gm} min. Recovering signals from ${Object.keys(coins).filter(s=>!coins[s].expired).length} tracked coins...`;
+  }
+}
+
+// ─────────────────────────────────────────────
+// STARTUP
+// ─────────────────────────────────────────────
+load();
+checkGap();
+renderLive();
+renderGainers();
+runScan(true);
+setInterval(()=>runScan(false), SCAN_MS);
+</script>
+</body>
+</html>
