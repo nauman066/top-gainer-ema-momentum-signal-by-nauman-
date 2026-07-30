@@ -1143,10 +1143,17 @@ function renderGainers(){
 // ─────────────────────────────────────────────
 // PDF DOWNLOAD: CHRONOLOGICAL TIME-BASED DAILY & ALL-TIME
 // ─────────────────────────────────────────────
+function downloadPDF(){
+  downloadFullPDF();
+}
+
 function downloadDailyPDF(){
   const dateSel=document.getElementById('pdfDateSel').value;
   if(dateSel==='TODAY'){
-    const todayStr=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit'});
+    const now=new Date();
+    const d=String(now.getDate()).padStart(2,'0');
+    const m=String(now.getMonth()+1).padStart(2,'0');
+    const todayStr=`${d}/${m}`;
     generateChronologicalPDF(todayStr, "Daily Report (" + todayStr + ")");
   } else {
     generateChronologicalPDF('ALL', "All-Time Complete History Report");
@@ -1158,7 +1165,6 @@ function downloadFullPDF(){
 }
 
 function generateChronologicalPDF(filterDate='ALL', reportTitle="EMA Tracker Chronological Report"){
-  const printWin=window.open('','_blank');
   const now=new Date().toLocaleString();
 
   let trades=[...allTrades];
@@ -1167,7 +1173,11 @@ function generateChronologicalPDF(filterDate='ALL', reportTitle="EMA Tracker Chr
 
   if(filterDate!=='ALL'){
     trades=trades.filter(t=>{
-      const dStr=new Date(t.et).toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit'});
+      if(!t.et) return false;
+      const dateObj=new Date(t.et);
+      const d=String(dateObj.getDate()).padStart(2,'0');
+      const m=String(dateObj.getMonth()+1).padStart(2,'0');
+      const dStr=`${d}/${m}`;
       return dStr===filterDate || (t.dt&&t.dt.startsWith(filterDate));
     });
   }
@@ -1314,9 +1324,29 @@ function generateChronologicalPDF(filterDate='ALL', reportTitle="EMA Tracker Chr
   }
 
   html+=`</body></html>`;
+
+  // Safe window open with pop-up blocker fallback
+  let printWin=window.open('','_blank');
+  if(!printWin){
+    // If pop-up blocked, create blob and trigger download/view directly
+    const blob=new Blob([html],{type:'text/html'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.target='_blank';
+    a.download=`${reportTitle.replace(/[^a-zA-Z0-9]/g,'_')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast('Pop-up blocked: Report downloaded as HTML file!');
+    return;
+  }
+
   printWin.document.write(html);
   printWin.document.close();
-  setTimeout(()=>printWin.print(),400);
+  setTimeout(()=>{
+    try{ printWin.print(); }catch(e){}
+  },500);
 }
 
 // ─────────────────────────────────────────────
