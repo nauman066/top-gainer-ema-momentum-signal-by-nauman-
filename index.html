@@ -1129,30 +1129,95 @@ function renderHistory(){
   }
 }
 
+function getTradeDateStr(t){
+  if(t.et){
+    const d=new Date(t.et);
+    if(!isNaN(d.getTime())){
+      const day=String(d.getDate()).padStart(2,'0');
+      const mon=String(d.getMonth()+1).padStart(2,'0');
+      const yr=d.getFullYear();
+      return `${day}/${mon}/${yr}`;
+    }
+  }
+  if(t.dt){
+    const parts=t.dt.split(' ');
+    if(parts[0] && parts[0].includes('/')){
+      const p=parts[0].split('/');
+      const day=String(p[0]).padStart(2,'0');
+      const mon=String(p[1]).padStart(2,'0');
+      const yr=new Date().getFullYear();
+      return `${day}/${mon}/${yr}`;
+    }
+  }
+  return null;
+}
+
+function getAllSignalsMaster(){
+  const master=[];
+  const seen=new Set();
+
+  function addTrade(t){
+    if(!t || !t.sym) return;
+    const key=`${t.sym}_${t.ch}_${t.et}`;
+    if(seen.has(key)) return;
+    seen.add(key);
+    master.push(t);
+  }
+
+  // 1. From allTrades array
+  (allTrades||[]).forEach(addTrade);
+
+  // 2. From PRELOADED_HISTORICAL_TRADES array
+  if(typeof PRELOADED_HISTORICAL_TRADES !== 'undefined'){
+    (PRELOADED_HISTORICAL_TRADES||[]).forEach(addTrade);
+  }
+
+  // 3. From coins object channels (both open and closed)
+  if(typeof coins !== 'undefined' && coins){
+    for(let sym of Object.keys(coins)){
+      const c=coins[sym];
+      if(!c || !c.channels) continue;
+      ['fast','slow','bothEither','bothBoth'].forEach(ch=>{
+        const channel=c.channels[ch];
+        if(!channel) return;
+        if(channel.open) addTrade({...channel.open, sym, ch, isOpen:true});
+        if(channel.closed && channel.closed.length){
+          channel.closed.forEach(tr=>addTrade({...tr, sym: tr.sym||sym, ch: tr.ch||ch}));
+        }
+      });
+    }
+  }
+
+  // Sort chronologically by entry time (newest first)
+  master.sort((a,b)=>(b.et||0)-(a.et||0));
+  return master;
+}
+
 function updateHistFilters(){
+  const allMaster = getAllSignalsMaster();
   const sel=document.getElementById('hCoin'), cur=sel.value;
-  const syms=[...new Set(allTrades.map(t=>t.sym))].filter(Boolean);
+  const syms=[...new Set(allMaster.map(t=>t.sym))].filter(Boolean);
   sel.innerHTML='<option value="ALL">All Coins</option>'+syms.map(s=>`<option value="${s}">${s.replace('USDT','')}</option>`).join('');
   if(syms.includes(cur)) sel.value=cur;
 
-  // Update PDF Date Selectors with all unique available dates
+  // Update PDF Date Selectors with all unique available dates from master signals
   const pdfSel=document.getElementById('pdfDateSel');
   const pdfSelLive=document.getElementById('pdfDateSelLive');
   
-  const dates=[...new Set(allTrades.map(t=>{
-    if(!t.et) return null;
-    const d=new Date(t.et);
-    const day=String(d.getDate()).padStart(2,'0');
-    const mon=String(d.getMonth()+1).padStart(2,'0');
-    const yr=d.getFullYear();
-    return `${day}/${mon}/${yr}`;
-  }).filter(Boolean))];
+  const dates=[...new Set(allMaster.map(t=>getTradeDateStr(t)).filter(Boolean))];
 
-  const todayStr=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'});
-  let opts=`<option value="ALL">📚 All-Time History (All Dates)</option>`;
-  opts+=`<option value="TODAY">📅 Today (${todayStr})</option>`;
+  const todayObj=new Date();
+  const d=String(todayObj.getDate()).padStart(2,'0');
+  const m=String(todayObj.getMonth()+1).padStart(2,'0');
+  const yr=todayObj.getFullYear();
+  const todayStr=`${d}/${m}/${yr}`;
+
+  let opts=`<option value="ALL">📚 All-Time History (${allMaster.length} Signals - All Dates)</option>`;
+  opts+=`<option value="${todayStr}">📅 Today (${todayStr})</option>`;
   for(let dt of dates){
-    opts+=`<option value="${dt}">📅 Date: ${dt}</option>`;
+    if(dt!==todayStr){
+      opts+=`<option value="${dt}">📅 Date: ${dt}</option>`;
+    }
   }
 
   if(pdfSel){ const c=pdfSel.value; pdfSel.innerHTML=opts; if(c) pdfSel.value=c; }
@@ -1245,18 +1310,15 @@ function downloadFullPDF(){
 function generateChronologicalPDF(filterDate='ALL', reportTitle="EMA Tracker Chronological Report"){
   const now=new Date().toLocaleString();
 
-  let trades=[...allTrades];
-  // Sort chronologically by entry time (newest first)
-  trades.sort((a,b)=>(b.et||0)-(a.et||0));
+  let trades=getAllSignalsMaster();
 
   if(filterDate!=='ALL'){
     trades=trades.filter(t=>{
-      if(!t.et) return false;
-      const dateObj=new Date(t.et);
-      const d=String(dateObj.getDate()).padStart(2,'0');
-      const m=String(dateObj.getMonth()+1).padStart(2,'0');
-      const dStr=`${d}/${m}`;
-      return dStr===filterDate || (t.dt&&t.dt.startsWith(filterDate));
+      const dStr=getTradeDateStr(t);
+      if(!dStr) return false;
+      // Match full date dd/mm/yyyy or short date dd/mm
+      const shortFilter = filterDate.split('/').slice(0,2).join('/');
+      return dStr===filterDate || dStr.startsWith(shortFilter) || (t.dt&&t.dt.startsWith(shortFilter));
     });
   }
 
