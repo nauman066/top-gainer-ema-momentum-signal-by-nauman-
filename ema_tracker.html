@@ -253,9 +253,10 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
     <div class="card-hdr">
       <span class="card-title">📜 Trade History</span>
       <div style="display:flex;gap:6px;align-items:center">
-        <select id="hCoin" onchange="renderHistory()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--t1);padding:3px 7px;border-radius:7px;font-size:10px">
+        <select id="hCoin" onchange="renderHistory()" style="background:rgba(255,255,255,0.1);border:1px solid var(--blue);color:var(--t1);padding:3px 7px;border-radius:7px;font-size:10px;font-weight:700">
           <option value="ALL">All Coins</option>
         </select>
+        <button class="btn btn-or btn-sm" onclick="downloadCoinPDF()" title="Download PDF for selected coin">🪙 Download Coin PDF</button>
         <select id="hChan" onchange="renderHistory()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--t1);padding:3px 7px;border-radius:7px;font-size:10px">
           <option value="ALL">All Channels</option>
           <option value="fast">Fast Only</option>
@@ -1111,20 +1112,24 @@ function renderHistory(){
   const cont=document.getElementById('histCont');
   const cv=document.getElementById('hCoin').value;
   const chv=document.getElementById('hChan').value;
-  let items=[...allTrades];
+  
+  // Master signals collection sorted chronologically (Newest first, Oldest last)
+  let items=getAllSignalsMaster();
+  items.sort((a,b)=>(b.et||0)-(a.et||0));
+
   if(cv!=='ALL') items=items.filter(t=>t.sym===cv);
   if(chv!=='ALL') items=items.filter(t=>t.ch===chv);
   if(items.length===0){cont.innerHTML='<div class="empty"><span>📜</span>No trades match filter.</div>';return;}
   cont.innerHTML='';
-  for(let tr of items.slice(0,80)){
+  for(let tr of items.slice(0,100)){
     const div=document.createElement('div');
     div.innerHTML=buildTradeCard(tr,true);
     cont.appendChild(div.firstElementChild);
   }
-  if(items.length>80){
+  if(items.length>100){
     const more=document.createElement('div');
     more.style.cssText='text-align:center;font-size:10px;color:var(--t3);padding:8px';
-    more.textContent=`Showing 80 of ${items.length} trades`;
+    more.textContent=`Showing 100 of ${items.length} trades`;
     cont.appendChild(more);
   }
 }
@@ -1287,24 +1292,145 @@ function downloadPDF(){
   downloadFullPDF();
 }
 
-function downloadDailyPDF(){
-  const dateSel=document.getElementById('pdfDateSel').value;
-  if(dateSel==='ALL'){
-    generateChronologicalPDF('ALL', "All-Time Complete History Report");
-  } else if(dateSel==='TODAY'){
-    const now=new Date();
-    const d=String(now.getDate()).padStart(2,'0');
-    const m=String(now.getMonth()+1).padStart(2,'0');
-    const yr=now.getFullYear();
-    const todayStr=`${d}/${m}/${yr}`;
-    generateChronologicalPDF(todayStr, "Daily Report (" + todayStr + ")");
-  } else {
-    generateChronologicalPDF(dateSel, "Daily Report (" + dateSel + ")");
+function downloadCoinPDF(){
+  const selCoin=document.getElementById('hCoin').value;
+  if(selCoin==='ALL'){
+    toast('Select a specific coin from dropdown to download its PDF (or use All-Time PDF button)');
+    generateChronologicalPDF('ALL', "All Coins History Report");
+    return;
   }
+  const coinName=selCoin.replace('USDT','/USDT');
+  generateCoinPDF(selCoin, `Single Coin Report — ${coinName}`);
 }
 
-function downloadFullPDF(){
-  generateChronologicalPDF('ALL', "All-Time Complete History Report (Day-by-Day)");
+function generateCoinPDF(targetSym, reportTitle){
+  const now=new Date().toLocaleString();
+  let master=getAllSignalsMaster();
+  let trades=master.filter(t=>t.sym===targetSym);
+  trades.sort((a,b)=>(b.et||0)-(a.et||0)); // newest first
+
+  if(!trades.length){
+    toast(`No trade signals found for ${targetSym}`);
+    return;
+  }
+
+  const cObj=coins[targetSym];
+  const expInfo=getCoinExpiryInfo(cObj);
+  const wins=trades.filter(t=>t.pnl>0).length;
+  const winRate=Math.round(wins/trades.length*100);
+  const totalPnl=r2(trades.reduce((s,t)=>s+t.pnl,0));
+  const avgPnl=r2(totalPnl/trades.length);
+  const avgHH=r2(trades.reduce((s,t)=>s+(t.hhPct||0),0)/trades.length);
+  const avgLL=r2(trades.reduce((s,t)=>s+(t.llPct||0),0)/trades.length);
+
+  let html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>${reportTitle} - ${now}</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:20px;max-width:980px;margin:0 auto}
+    h1{font-size:20px;margin-bottom:4px;color:#0f172a}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #0f172a}
+    .coin-card{background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:14px 18px;margin:18px 0 12px}
+    .coin-title{font-size:16px;font-weight:bold;color:#1e293b;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+    .exp-chip{font-size:11px;padding:4px 10px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:6px;font-weight:bold}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .stat-box{background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:8px 14px;font-size:10px;text-align:center;min-width:110px}
+    .stat-val{font-size:15px;font-weight:bold;color:#0f172a;margin-top:2px}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:10px}
+    th{background:#1e293b;color:#fff;padding:6px 8px;text-align:center;font-size:10px}
+    td{padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:center}
+    tr:nth-child(even) td{background:#f8fafc}
+    .win td:first-child{border-left:4px solid #10b981}
+    .loss td:first-child{border-left:4px solid #ef4444}
+    .green{color:#059669;font-weight:bold} .red{color:#dc2626;font-weight:bold}
+    .badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:bold}
+    .b-fast{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+    .b-slow{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd}
+    .b-either{background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd}
+    .b-both{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+    @media print{button{display:none}}
+  </style></head><body>`;
+
+  html+=`<div class="header">
+    <div>
+      <h1>🪙 ${targetSym.replace('USDT','/USDT')} Trade Signals Report</h1>
+      <div style="color:#64748b;font-size:11px">Generated: ${now} • Sorted Chronologically (Newest First)</div>
+    </div>
+    <button onclick="window.print()" style="padding:8px 18px;background:#0f172a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold">🖨️ Print / Save PDF</button>
+  </div>`;
+
+  html+=`<div class="coin-card">
+    <div class="coin-title">
+      <span>🪙 Coin: ${targetSym.replace('USDT','/USDT')}</span>
+      <span class="exp-chip">⏳ ${expInfo.label}</span>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box">Total Signals<br><div class="stat-val">${trades.length}</div></div>
+      <div class="stat-box">Win Rate<br><div class="stat-val ${winRate>=50?'green':'red'}">${winRate}%</div></div>
+      <div class="stat-box">Total P&L<br><div class="stat-val ${totalPnl>=0?'green':'red'}">${totalPnl>=0?'+':''}${totalPnl}%</div></div>
+      <div class="stat-box">Avg P&L<br><div class="stat-val ${avgPnl>=0?'green':'red'}">${avgPnl>=0?'+':''}${avgPnl}%</div></div>
+      <div class="stat-box">Avg Max Gain<br><div class="stat-val green">+${avgHH}%</div></div>
+      <div class="stat-box">Avg Max Draw<br><div class="stat-val red">${avgLL}%</div></div>
+    </div>
+  </div>`;
+
+  const chBadges={fast:'<span class="badge b-fast">⚡ Fast</span>',slow:'<span class="badge b-slow">🔵 Slow</span>',bothEither:'<span class="badge b-either">🔥 Both-Either</span>',bothBoth:'<span class="badge b-both">❌ Both-Both</span>'};
+
+  html+=`<table>
+    <thead>
+      <tr>
+        <th>Entry Time</th>
+        <th>Exit Time</th>
+        <th>Channel</th>
+        <th>Dir</th>
+        <th>Entry $</th>
+        <th>Exit $</th>
+        <th>P&L %</th>
+        <th>HH (Max Gain)</th>
+        <th>LL (Max Draw)</th>
+        <th>Duration</th>
+        <th>Exit Reason</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  for(let t of trades){
+    const win=t.pnl>0, loss=t.pnl<0;
+    const cls=win?'win':loss?'loss':'';
+    html+=`<tr class="${cls}">
+      <td style="font-weight:bold">${fmtDate(t.et)}</td>
+      <td>${fmtDate(t.xt)}</td>
+      <td>${chBadges[t.ch]||t.ch}</td>
+      <td style="font-weight:bold;color:${t.dir==='UP'?'#059669':'#dc2626'}">${t.dir==='UP'?'↑ UP':'↓ DOWN'}</td>
+      <td>$${p4(t.ep)}</td>
+      <td>$${p4(t.xp)}</td>
+      <td class="${t.pnl>=0?'green':'red'}">${t.pnl>=0?'+':''}${t.pnl}%</td>
+      <td class="green">$${p4(t.hh)} (+${t.hhPct}%)<br><small style="color:#64748b">Bar +${t.hhBar||0}</small></td>
+      <td class="red">$${p4(t.ll)} (${t.llPct}%)<br><small style="color:#64748b">Bar +${t.llBar||0}</small></td>
+      <td>${fmtDur(t.dur)}</td>
+      <td>${t.reason||'—'}</td>
+    </tr>`;
+  }
+  html+=`</tbody></table></body></html>`;
+
+  // Print popup window with pop-up blocker fallback
+  let printWin=window.open('','_blank');
+  if(!printWin){
+    const blob=new Blob([html],{type:'text/html'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.target='_blank';
+    a.download=`${targetSym}_PDF_Report.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast(`${targetSym} Report downloaded as HTML!`);
+    return;
+  }
+
+  printWin.document.write(html);
+  printWin.document.close();
+  setTimeout(()=>{ try{ printWin.print(); }catch(e){} },500);
 }
 
 function generateChronologicalPDF(filterDate='ALL', reportTitle="EMA Tracker Chronological Report"){
