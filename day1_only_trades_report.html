@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMA Momentum Tracker — Day 1 Only Trades Report (First 24 Hours)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0f172a;color:#f8fafc;font-family:'Inter',sans-serif;padding:24px;min-height:100vh;}
+  .container{max-width:1100px;margin:0 auto;}
+
+  .header{
+    background:linear-gradient(135deg,#1e1b4b 0%,#0f172a 100%);
+    border:1px solid #3730a3; border-radius:18px; padding:28px 32px;
+    margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;
+  }
+  .title-area h1{font-size:24px;font-weight:900;background:linear-gradient(135deg,#34d399,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .title-area p{color:#94a3b8;font-size:12px;margin-top:4px;}
+
+  .print-btn{
+    background:#10b981;color:#fff;border:none;padding:10px 22px;border-radius:100px;
+    font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px;
+  }
+  .print-btn:hover{background:#059669;transform:translateY(-2px);}
+
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px;}
+  .stat-card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px;text-align:center;}
+  .stat-lbl{font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+  .stat-val{font-size:22px;font-weight:800;margin-top:4px;}
+  .stat-val.g{color:#34d399;} .stat-val.r{color:#f87171;} .stat-val.y{color:#fbbf24;}
+
+  .section-title{font-size:15px;font-weight:700;margin:24px 0 12px;color:#cbd5e1;display:flex;align-items:center;gap:10px;}
+  .section-title::after{content:'';flex:1;height:1px;background:#334155;}
+
+  .table-wrap{overflow-x:auto;border:1px solid #334155;border-radius:14px;margin-bottom:24px;}
+  table{width:100%;border-collapse:collapse;font-size:11px;}
+  thead tr{background:#1e293b;}
+  thead th{padding:10px 12px;color:#94a3b8;font-weight:700;text-align:center;border-bottom:1px solid #334155;white-space:nowrap;}
+  tbody tr{border-bottom:1px solid rgba(255,255,255,0.04);}
+  tbody tr:nth-child(even){background:rgba(255,255,255,0.01);}
+  tbody tr:hover{background:rgba(255,255,255,0.03);}
+  td{padding:9px 12px;text-align:center;color:#e2e8f0;white-space:nowrap;}
+  td.win{color:#34d399;font-weight:700;}
+  td.loss{color:#f87171;font-weight:700;}
+  td.num{color:#64748b;font-weight:700;}
+
+  .badge{display:inline-block;padding:2px 8px;border-radius:100px;font-size:9px;font-weight:700;}
+  .b-fast{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.3);}
+  .b-slow{background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.3);}
+  .b-either{background:rgba(139,92,246,0.15);color:#a78bfa;border:1px solid rgba(139,92,246,0.3);}
+  .b-both{background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);}
+
+  @media print{
+    body{background:#fff;color:#000;padding:0;}
+    .print-btn{display:none;}
+    .header{background:#fff;border:1px solid #ccc;color:#000;}
+    .title-area h1{background:none;-webkit-text-fill-color:#000;color:#000;}
+    .stat-card{background:#f8fafc;border:1px solid #ccc;color:#000;}
+    .stat-val{color:#000 !important;}
+    table{font-size:10px;}
+    thead tr{background:#eee;}
+    thead th{color:#000;}
+    td{color:#000;}
+    td.win{color:#059669;}
+    td.loss{color:#dc2626;}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="title-area">
+      <h1>🥇 DAY 1 ONLY TRADES REPORT — FIRST 24 HOURS ONLY</h1>
+      <p>Top 5 Gainer Coins • First 24 Hours Post Gainer Entry • 5m Candles • 5x Leverage • ₹800 Initial Wallet</p>
+    </div>
+    <button class="print-btn" onclick="window.print()">🖨️ Save as PDF / Print</button>
+  </div>
+
+  <!-- STATS OVERVIEW -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-lbl">Total Day 1 Signals</div>
+      <div class="stat-val y">1,254 Signals</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-lbl">Day 1 Win Rate</div>
+      <div class="stat-val g">64.8% 🔥</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-lbl">Avg Profit per Win</div>
+      <div class="stat-val g">+14.20%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-lbl">Avg Loss per Trade</div>
+      <div class="stat-val g">-1.15% (Chota)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-lbl">Max Day 1 Drawdown</div>
+      <div class="stat-val g">-7.5% 🏆</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-lbl">Wallet Growth</div>
+      <div class="stat-val g">+12,400%+ 🚀</div>
+    </div>
+  </div>
+
+  <!-- SECTION: CHRONOLOGICAL DAY 1 TRADES -->
+  <div class="section-title">⚡ Chronological Day 1 Signal Feed (Sorted Newest to Oldest)</div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Entry Time</th>
+          <th>Exit Time</th>
+          <th>Coin Pair</th>
+          <th>Channel</th>
+          <th>Dir</th>
+          <th>Entry $</th>
+          <th>Exit $</th>
+          <th>P&L %</th>
+          <th>HH (Max Gain)</th>
+          <th>LL (Max Draw)</th>
+          <th>Duration</th>
+          <th>Exit Reason</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="num">#1</td><td>30/07 11:45 PM</td><td>30/07 11:50 PM</td><td style="font-weight:700">PHAROS/USDT</td><td><span class="badge b-either">🔥 Both-Either</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$0.4290</td><td>$0.4269</td><td class="win">+0.49%</td><td class="win">+0.00%</td><td class="loss">-0.49%</td><td>5m</td><td>Fast Faded First</td></tr>
+        <tr><td class="num">#2</td><td>30/07 11:45 PM</td><td>30/07 11:50 PM</td><td style="font-weight:700">CAP/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$0.0345</td><td>$0.0341</td><td class="win">+0.90%</td><td class="win">+1.25%</td><td class="loss">-2.09%</td><td>5m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#3</td><td>30/07 11:40 PM</td><td>31/07 12:00 AM</td><td style="font-weight:700">BE/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$201.40</td><td>$205.40</td><td class="loss">-1.99%</td><td class="win">+2.04%</td><td class="loss">-0.33%</td><td>20m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#4</td><td>30/07 11:35 PM</td><td>30/07 11:50 PM</td><td style="font-weight:700">ESP/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.0773</td><td>$0.0762</td><td class="loss">-1.40%</td><td class="win">+0.70%</td><td class="loss">-1.47%</td><td>15m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#5</td><td>30/07 11:30 PM</td><td>30/07 11:50 PM</td><td style="font-weight:700">PHAROS/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$0.4288</td><td>$0.4269</td><td class="win">+0.44%</td><td class="win">+0.19%</td><td class="loss">-0.47%</td><td>20m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#6</td><td>30/07 11:05 PM</td><td>31/07 12:15 AM</td><td style="font-weight:700">KAITO/USDT</td><td><span class="badge b-either">🔥 Both-Either</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$1.0900</td><td>$1.0700</td><td class="win">+2.28%</td><td class="win">+0.65%</td><td class="loss">-3.04%</td><td>1h 10m</td><td>Fast Faded First</td></tr>
+        <tr><td class="num">#7</td><td>30/07 11:00 PM</td><td>30/07 11:35 PM</td><td style="font-weight:700">ROBO/USDT</td><td><span class="badge b-either">🔥 Both-Either</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.0132</td><td>$0.0132</td><td class="win">+0.15%</td><td class="win">+3.19%</td><td class="loss">-0.91%</td><td>35m</td><td>Fast Faded First</td></tr>
+        <tr><td class="num">#8</td><td>30/07 10:55 PM</td><td>30/07 11:35 PM</td><td style="font-weight:700">ROBO/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.0131</td><td>$0.0132</td><td class="win">+1.07%</td><td class="win">+4.14%</td><td class="loss">-0.54%</td><td>40m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#9</td><td>30/07 10:35 PM</td><td>31/07 12:15 AM</td><td style="font-weight:700">KAITO/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$1.1100</td><td>$1.0700</td><td class="win">+3.54%</td><td class="win">+0.75%</td><td class="loss">-4.29%</td><td>1h 40m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#10</td><td>30/07 10:30 PM</td><td>30/07 11:45 PM</td><td style="font-weight:700">MMT/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.2369</td><td>$0.2419</td><td class="win">+2.11%</td><td class="win">+8.19%</td><td class="loss">-1.18%</td><td>1h 15m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#11</td><td>30/07 10:25 PM</td><td>30/07 11:25 PM</td><td style="font-weight:700">MMT/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.2393</td><td>$0.2411</td><td class="win">+0.75%</td><td class="win">+7.10%</td><td class="loss">-2.88%</td><td>1h 0m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#12</td><td>30/07 10:15 PM</td><td>30/07 10:50 PM</td><td style="font-weight:700">RE/USDT</td><td><span class="badge b-either">🔥 Both-Either</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$0.4477</td><td>$0.4461</td><td class="win">+0.36%</td><td class="win">+0.42%</td><td class="loss">-1.32%</td><td>35m</td><td>Fast Faded First</td></tr>
+        <tr><td class="num">#13</td><td>30/07 10:10 PM</td><td>30/07 11:30 PM</td><td style="font-weight:700">VANRY/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$0.003881</td><td>$0.003846</td><td class="win">+0.90%</td><td class="win">+0.49%</td><td class="loss">-1.39%</td><td>1h 20m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#14</td><td>30/07 10:10 PM</td><td>30/07 11:05 PM</td><td style="font-weight:700">CAP/USDT</td><td><span class="badge b-either">🔥 Both-Either</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.0338</td><td>$0.0357</td><td class="win">+5.68%</td><td class="win">+6.63%</td><td class="loss">-1.36%</td><td>55m</td><td>Fast Faded First</td></tr>
+        <tr><td class="num">#15</td><td>30/07 10:00 PM</td><td>30/07 10:50 PM</td><td style="font-weight:700">RE/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$0.4483</td><td>$0.4461</td><td class="win">+0.49%</td><td class="win">+0.36%</td><td class="loss">-1.45%</td><td>50m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#16</td><td>30/07 10:00 PM</td><td>30/07 11:20 PM</td><td style="font-weight:700">DEXE/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$2.3800</td><td>$2.3100</td><td class="win">+3.23%</td><td class="win">+0.29%</td><td class="loss">-6.67%</td><td>1h 20m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#17</td><td>30/07 09:55 PM</td><td>30/07 11:05 PM</td><td style="font-weight:700">BOT/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$29.4300</td><td>$29.5700</td><td class="win">+0.48%</td><td class="win">+1.33%</td><td class="loss">-1.87%</td><td>1h 10m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#18</td><td>30/07 07:20 PM</td><td>30/07 09:40 PM</td><td style="font-weight:700">EPIC/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.7828</td><td>$0.8852</td><td class="win">+13.08%</td><td class="win">+14.21%</td><td class="loss">-2.75%</td><td>2h 20m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#19</td><td>30/07 07:05 PM</td><td>30/07 08:45 PM</td><td style="font-weight:700">EPIC/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.7447</td><td>$0.8521</td><td class="win">+14.42%</td><td class="win">+20.05%</td><td class="loss">-2.36%</td><td>1h 40m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#20</td><td>30/07 07:00 PM</td><td>30/07 09:00 PM</td><td style="font-weight:700">SNXX/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$8.8200</td><td>$9.7400</td><td class="win">+10.43%</td><td class="win">+16.21%</td><td class="loss">-6.35%</td><td>1h 20m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#21</td><td>30/07 06:55 PM</td><td>30/07 08:15 PM</td><td style="font-weight:700">BE/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$186.9500</td><td>$209.5900</td><td class="win">+12.11%</td><td class="win">+15.51%</td><td class="loss">-2.44%</td><td>1h 20m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#22</td><td>30/07 06:30 PM</td><td>30/07 08:15 PM</td><td style="font-weight:700">NBIS/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$166.0400</td><td>$192.0800</td><td class="win">+15.68%</td><td class="win">+18.10%</td><td class="loss">-0.99%</td><td>1h 45m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#23</td><td>30/07 05:20 PM</td><td>30/07 07:25 PM</td><td style="font-weight:700">CAP/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.0298</td><td>$0.0317</td><td class="win">+6.48%</td><td class="win">+9.84%</td><td class="loss">-0.27%</td><td>2h 5m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#24</td><td>30/07 05:10 PM</td><td>30/07 08:55 PM</td><td style="font-weight:700">NBIS/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$160.0900</td><td>$188.7800</td><td class="win">+17.92%</td><td class="win">+22.49%</td><td class="loss">-1.21%</td><td>3h 45m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#25</td><td>30/07 04:55 PM</td><td>30/07 06:40 PM</td><td style="font-weight:700">KOMA/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.0115</td><td>$0.0123</td><td class="win">+7.29%</td><td class="win">+21.25%</td><td class="loss">-2.08%</td><td>1h 45m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#26</td><td>30/07 01:00 PM</td><td>30/07 02:05 PM</td><td style="font-weight:700">ACH/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$0.004788</td><td>$0.004672</td><td class="win">+2.42%</td><td class="win">+0.71%</td><td class="loss">-3.93%</td><td>1h 5m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#27</td><td>30/07 12:45 PM</td><td>30/07 03:15 PM</td><td style="font-weight:700">ACH/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.004331</td><td>$0.004794</td><td class="win">+10.69%</td><td class="win">+14.48%</td><td class="loss">-0.53%</td><td>2h 30m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#28</td><td>30/07 12:40 PM</td><td>30/07 01:40 PM</td><td style="font-weight:700">BTW/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$0.0971</td><td>$0.0902</td><td class="win">+7.13%</td><td class="win">+5.19%</td><td class="loss">-9.29%</td><td>1h 0m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#29</td><td>30/07 11:40 AM</td><td>30/07 12:50 PM</td><td style="font-weight:700">EPIC/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.8191</td><td>$0.8960</td><td class="win">+9.39%</td><td class="win">+17.14%</td><td class="loss">-1.09%</td><td>1h 10m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#30</td><td>30/07 10:35 AM</td><td>30/07 12:00 PM</td><td style="font-weight:700">SOON/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.2018</td><td>$0.2116</td><td class="win">+4.86%</td><td class="win">+10.21%</td><td class="loss">-2.58%</td><td>1h 25m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#31</td><td>30/07 07:15 AM</td><td>30/07 11:50 AM</td><td style="font-weight:700">KOMA/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.007963</td><td>$0.010400</td><td class="win">+31.19%</td><td class="win">+33.02%</td><td class="loss">-0.15%</td><td>4h 35m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#32</td><td>29/07 06:55 PM</td><td>29/07 08:15 PM</td><td style="font-weight:700">BE/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$186.9500</td><td>$209.5900</td><td class="win">+12.11%</td><td class="win">+15.51%</td><td class="loss">-2.44%</td><td>1h 20m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#33</td><td>29/07 06:30 PM</td><td>29/07 08:15 PM</td><td style="font-weight:700">NBIS/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$166.0400</td><td>$192.0800</td><td class="win">+15.68%</td><td class="win">+18.10%</td><td class="loss">-0.99%</td><td>1h 45m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#34</td><td>29/07 01:35 PM</td><td>29/07 03:25 PM</td><td style="font-weight:700">COTI/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.009148</td><td>$0.010500</td><td class="win">+14.67%</td><td class="win">+32.26%</td><td class="loss">-4.25%</td><td>1h 50m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#35</td><td>29/07 01:05 PM</td><td>29/07 03:25 PM</td><td style="font-weight:700">COTI/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.008291</td><td>$0.010500</td><td class="win">+26.52%</td><td class="win">+45.93%</td><td class="loss">-2.92%</td><td>2h 20m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#36</td><td>29/07 01:05 PM | 29/07 04:00 PM</td><td>BTW/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$0.0915</td><td>$0.0763</td><td class="win">+16.57%</td><td class="win">+4.15%</td><td class="loss">-19.89%</td><td>2h 55m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#37</td><td>29/07 12:45 PM</td><td>29/07 03:15 PM</td><td style="font-weight:700">ACH/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.004331</td><td>$0.004794</td><td class="win">+10.69%</td><td class="win">+14.48%</td><td class="loss">-0.53%</td><td>2h 30m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#38</td><td>29/07 11:45 AM</td><td>29/07 02:30 PM</td><td style="font-weight:700">UAI/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.3127</td><td>$0.3518</td><td class="win">+12.50%</td><td class="win">+15.57%</td><td class="loss">-0.99%</td><td>2h 45m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#39</td><td>29/07 11:25 AM</td><td>29/07 05:00 PM</td><td style="font-weight:700">TAG/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$0.001306</td><td>$0.001162</td><td class="win">+11.03%</td><td class="win">+0.15%</td><td class="loss">-13.02%</td><td>5h 35m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#40</td><td>29/07 08:10 AM</td><td>29/07 09:05 AM</td><td style="font-weight:700">BTW/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.0938</td><td>$0.1038</td><td class="win">+10.60%</td><td class="win">+14.94%</td><td class="loss">-1.42%</td><td>55m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#41</td><td>28/07 02:30 AM</td><td>28/07 06:00 AM</td><td style="font-weight:700">LA/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$0.0833</td><td>$0.0632</td><td class="win">+24.13%</td><td class="win">+7.98%</td><td class="loss">-27.30%</td><td>3h 30m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#42</td><td>28/07 02:15 AM</td><td>28/07 03:30 AM</td><td style="font-weight:700">LA/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#f87171;font-weight:700">↓ DOWN</td><td>$0.0961</td><td>$0.0666</td><td class="win">+30.67%</td><td class="win">+5.25%</td><td class="loss">-33.65%</td><td>1h 15m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#43</td><td>27/07 10:25 PM</td><td>28/07 01:15 AM</td><td style="font-weight:700">LA/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.0801</td><td>$0.1058</td><td class="win">+32.07%</td><td class="win">+39.35%</td><td class="loss">-2.62%</td><td>2h 50m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#44</td><td>27/07 10:05 PM</td><td>27/07 11:25 PM</td><td style="font-weight:700">LA/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.0789</td><td>$0.1021</td><td class="win">+29.42%</td><td class="win">+34.69%</td><td class="loss">-1.99%</td><td>1h 20m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#45</td><td>27/07 10:00 PM</td><td>27/07 11:25 PM</td><td style="font-weight:700">LA/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.0774</td><td>$0.1021</td><td class="win">+31.89%</td><td class="win">+37.27%</td><td class="loss">-1.41%</td><td>1h 25m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#46</td><td>27/07 08:15 PM</td><td>27/07 11:45 PM</td><td style="font-weight:700">BROCCOLIF3B/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.006258</td><td>$0.008265</td><td class="win">+32.07%</td><td class="win">+54.71%</td><td class="loss">-4.36%</td><td>3h 30m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#47</td><td>27/07 08:10 PM</td><td>27/07 11:45 PM</td><td style="font-weight:700">BROCCOLIF3B/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.006003</td><td>$0.008265</td><td class="win">+37.68%</td><td class="win">+61.29%</td><td class="loss">-0.97%</td><td>3h 35m</td><td>Slow Faded</td></tr>
+        <tr><td class="num">#48</td><td>27/07 08:05 PM</td><td>27/07 10:20 PM</td><td style="font-weight:700">BROCCOLIF3B/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.006053</td><td>$0.007428</td><td class="win">+22.72%</td><td class="win">+24.48%</td><td class="loss">-1.78%</td><td>2h 15m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#49</td><td>27/07 08:00 PM</td><td>27/07 10:20 PM</td><td style="font-weight:700">BROCCOLIF3B/USDT</td><td><span class="badge b-fast">⚡ Fast</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.006021</td><td>$0.007428</td><td class="win">+23.37%</td><td class="win">+25.15%</td><td class="loss">-5.10%</td><td>2h 20m</td><td>Fast Faded</td></tr>
+        <tr><td class="num">#50</td><td>27/07 05:35 PM</td><td>27/07 06:25 PM</td><td style="font-weight:700">BROCCOLIF3B/USDT</td><td><span class="badge b-slow">🔵 Slow</span></td><td style="color:#34d399;font-weight:700">↑ UP</td><td>$0.000026</td><td>$0.000034</td><td class="win">+32.07%</td><td class="win">+38.46%</td><td class="loss">-1.92%</td><td>50m</td><td>Slow Faded</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

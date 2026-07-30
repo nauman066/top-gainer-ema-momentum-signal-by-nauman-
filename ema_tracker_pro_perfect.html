@@ -230,6 +230,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
         <option value="ALL">📚 All-Time History (All Dates)</option>
         <option value="TODAY">📅 Today's Date</option>
       </select>
+      <button class="btn btn-grn btn-sm" onclick="downloadDay1PDF()" style="flex:1;min-width:110px;padding:7px 10px;font-size:11px;font-weight:700" title="Download ONLY Day 1 Trades (First 24 Hours)">🥇 Day 1 PDF</button>
       <button class="btn btn-blu btn-sm" onclick="downloadDailyPDF()" style="flex:1;min-width:110px;padding:7px 10px;font-size:11px;font-weight:700">📅 Selected PDF</button>
       <button class="btn btn-grn btn-sm" onclick="downloadFullPDF()" style="flex:1;min-width:110px;padding:7px 10px;font-size:11px;font-weight:700">📚 All-Time PDF</button>
       <button class="btn btn-or btn-sm" onclick="downloadTXTReport()" style="flex:1;min-width:110px;padding:7px 10px;font-size:11px;font-weight:700" title="Download 100% of all signals as a TXT file">📄 Download TXT</button>
@@ -269,6 +270,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
           <option value="ALL">📚 All-Time History (All Dates)</option>
           <option value="TODAY">📅 Today's Date</option>
         </select>
+        <button class="btn btn-grn btn-sm" onclick="downloadDay1PDF()" title="Download ONLY Day 1 Trades (First 24 Hours)">🥇 Day 1 PDF</button>
         <button class="btn btn-blu btn-sm" onclick="downloadDailyPDF()" title="Download PDF for selected date">📅 Selected PDF</button>
         <button class="btn btn-grn btn-sm" onclick="downloadFullPDF()" title="Download complete all-time history PDF">📚 All-Time PDF</button>
         <button class="btn btn-or btn-sm" onclick="downloadTXTReport()" title="Download complete 100% signals as a TXT file">📄 TXT</button>
@@ -1290,8 +1292,19 @@ function getCoinExpiryInfo(c){
   };
 }
 
-function downloadPDF(){
-  downloadFullPDF();
+function downloadDay1PDF(){
+  let master = getAllSignalsMaster();
+  // Day 1 Trades = signals occurring within first 24 hours of coin gainer entry
+  let day1Trades = master.filter(t => {
+    const cObj = coins[t.sym];
+    const gObj = gainers.find(g => g.sym === t.sym);
+    const startTs = (cObj && cObj.et) || (gObj && gObj.ts) || t.et;
+    if(!startTs || !t.et) return true;
+    const elapsed = t.et - startTs;
+    return elapsed >= 0 && elapsed <= 24 * 3600 * 1000;
+  });
+
+  generateChronologicalPDF('ALL', "Day 1 Only Trades Report (First 24 Hours Post Gainer Entry)", day1Trades);
 }
 
 function downloadCoinPDF(){
@@ -1438,10 +1451,10 @@ function generateCoinPDF(targetSym, reportTitle){
   setTimeout(()=>{ try{ printWin.print(); }catch(e){} },500);
 }
 
-function generateChronologicalPDF(filterDate='ALL', reportTitle="EMA Tracker Chronological Report"){
+function generateChronologicalPDF(filterDate='ALL', reportTitle="EMA Tracker Chronological Report", customTrades=null){
   const now=new Date().toLocaleString();
 
-  let trades=getAllSignalsMaster();
+  let trades = customTrades ? [...customTrades] : getAllSignalsMaster();
 
   if(filterDate!=='ALL'){
     trades=trades.filter(t=>{
@@ -1638,9 +1651,9 @@ function downloadTXTReport(){
   const now=new Date().toLocaleString();
   const dateSelLive=document.getElementById('pdfDateSelLive')?document.getElementById('pdfDateSelLive').value:'ALL';
   
-  let trades=getAllSignalsMaster();
+  let rawTrades=getAllSignalsMaster();
   if(dateSelLive!=='ALL'){
-    trades=trades.filter(t=>{
+    rawTrades=rawTrades.filter(t=>{
       const dStr=getTradeDateStr(t);
       if(!dStr) return false;
       const shortFilter = dateSelLive.split('/').slice(0,2).join('/');
@@ -1648,14 +1661,34 @@ function downloadTXTReport(){
     });
   }
 
-  if(!trades.length){
+  if(!rawTrades.length){
     toast('No trade signals found to export in TXT!');
     return;
   }
 
+  // Process open and closed trades safely
+  const trades = rawTrades.map(t => {
+    let pnl = t.pnl;
+    let dur = t.dur;
+    let hhPct = t.hhPct !== undefined ? t.hhPct : 0;
+    let llPct = t.llPct !== undefined ? t.llPct : 0;
+    let xp = t.xp !== undefined ? t.xp : 0;
+
+    if(t.isOpen || pnl === undefined || pnl === null || isNaN(pnl)){
+      const curPrice = t.livePrice || t.ep || 0;
+      const isUp = t.dir === 'UP';
+      pnl = isUp ? r2((curPrice - t.ep)/t.ep * 100) : r2((t.ep - curPrice)/t.ep * 100);
+      dur = Math.round((Date.now() - (t.et || Date.now())) / 60000);
+      xp = curPrice;
+      if(t.hh && t.ep) hhPct = r2(Math.abs(t.hh - t.ep)/t.ep * 100);
+      if(t.ll && t.ep) llPct = r2(-Math.abs(t.ll - t.ep)/t.ep * 100);
+    }
+    return { ...t, pnl, dur, hhPct, llPct, xp };
+  });
+
   const wins=trades.filter(t=>t.pnl>0).length;
   const winRate=Math.round(wins/trades.length*100);
-  const totalPnl=r2(trades.reduce((s,t)=>s+t.pnl,0));
+  const totalPnl=r2(trades.reduce((s,t)=>s+(t.pnl||0),0));
   const avgPnl=r2(totalPnl/trades.length);
   const avgHH=r2(trades.reduce((s,t)=>s+(t.hhPct||0),0)/trades.length);
   const avgLL=r2(trades.reduce((s,t)=>s+(t.llPct||0),0)/trades.length);
@@ -1680,7 +1713,7 @@ function downloadTXTReport(){
   for(let t of trades){
     const num=String(idx++).padStart(4,' ');
     const et=fmtDate(t.et).padEnd(12,' ');
-    const xt=fmtDate(t.xt).padEnd(12,' ');
+    const xt=t.isOpen?'OPEN (Live) ':fmtDate(t.xt).padEnd(12,' ');
     const sym=(t.sym||'').replace('USDT','/USDT').padEnd(9,' ');
     const ch=(t.ch||'').padEnd(11,' ');
     const dir=(t.dir||'UP').padEnd(4,' ');
@@ -1689,8 +1722,8 @@ function downloadTXTReport(){
     const pnl=((t.pnl>=0?'+':'')+t.pnl+'%').padEnd(8,' ');
     const hh=('+'+t.hhPct+'%').padEnd(7,' ');
     const ll=(t.llPct+'%').padEnd(7,' ');
-    const dur=fmtDur(t.dur).padEnd(5,' ');
-    const reason=t.reason||'—';
+    const dur=fmtDur(t.dur||0).padEnd(5,' ');
+    const reason=t.isOpen?'OPEN (Live Trade)':(t.reason||'—');
 
     txt+=`#${num} | ${et} | ${xt} | ${sym} | ${ch} | ${dir} | ${ep} | ${xp} | ${pnl} | ${hh} | ${ll} | ${dur} | ${reason}\n`;
   }
