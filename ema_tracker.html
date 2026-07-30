@@ -230,8 +230,9 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
         <option value="ALL">📚 All-Time History (All Dates)</option>
         <option value="TODAY">📅 Today's Date</option>
       </select>
-      <button class="btn btn-blu btn-sm" onclick="downloadDailyPDF()" style="flex:1;min-width:120px;padding:7px 12px;font-size:11px;font-weight:700">📅 Download Selected PDF</button>
-      <button class="btn btn-grn btn-sm" onclick="downloadFullPDF()" style="flex:1;min-width:120px;padding:7px 12px;font-size:11px;font-weight:700">📚 All-Time PDF</button>
+      <button class="btn btn-blu btn-sm" onclick="downloadDailyPDF()" style="flex:1;min-width:110px;padding:7px 10px;font-size:11px;font-weight:700">📅 Selected PDF</button>
+      <button class="btn btn-grn btn-sm" onclick="downloadFullPDF()" style="flex:1;min-width:110px;padding:7px 10px;font-size:11px;font-weight:700">📚 All-Time PDF</button>
+      <button class="btn btn-or btn-sm" onclick="downloadTXTReport()" style="flex:1;min-width:110px;padding:7px 10px;font-size:11px;font-weight:700" title="Download 100% of all signals as a TXT file">📄 Download TXT</button>
     </div>
   </div>
 
@@ -270,6 +271,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
         </select>
         <button class="btn btn-blu btn-sm" onclick="downloadDailyPDF()" title="Download PDF for selected date">📅 Selected PDF</button>
         <button class="btn btn-grn btn-sm" onclick="downloadFullPDF()" title="Download complete all-time history PDF">📚 All-Time PDF</button>
+        <button class="btn btn-or btn-sm" onclick="downloadTXTReport()" title="Download complete 100% signals as a TXT file">📄 TXT</button>
         <button class="btn btn-sec btn-sm" onclick="clearHistory()">🗑️</button>
       </div>
     </div>
@@ -1378,6 +1380,7 @@ function generateCoinPDF(targetSym, reportTitle){
   html+=`<table>
     <thead>
       <tr>
+        <th>#</th>
         <th>Entry Time</th>
         <th>Exit Time</th>
         <th>Channel</th>
@@ -1393,10 +1396,12 @@ function generateCoinPDF(targetSym, reportTitle){
     </thead>
     <tbody>`;
 
+  let idx=1;
   for(let t of trades){
     const win=t.pnl>0, loss=t.pnl<0;
     const cls=win?'win':loss?'loss':'';
     html+=`<tr class="${cls}">
+      <td style="font-weight:bold;color:#64748b">#${idx++}</td>
       <td style="font-weight:bold">${fmtDate(t.et)}</td>
       <td>${fmtDate(t.xt)}</td>
       <td>${chBadges[t.ch]||t.ch}</td>
@@ -1485,9 +1490,7 @@ function generateChronologicalPDF(filterDate='ALL', reportTitle="EMA Tracker Chr
   </div>`;
 
   if(!trades.length){
-    html+=`<div style="text-align:center;padding:40px;color:#64748b">No trades found for the selected filter (${filterDate}).</div></body></html>`;
-    printWin.document.write(html);
-    printWin.document.close();
+    toast(`No signals found for date filter (${filterDate})`);
     return;
   }
 
@@ -1543,6 +1546,7 @@ function generateChronologicalPDF(filterDate='ALL', reportTitle="EMA Tracker Chr
     html+=`<table>
       <thead>
         <tr>
+          <th>#</th>
           <th>Entry Time</th>
           <th>Exit Time</th>
           <th>Coin</th>
@@ -1559,10 +1563,12 @@ function generateChronologicalPDF(filterDate='ALL', reportTitle="EMA Tracker Chr
       </thead>
       <tbody>`;
 
+    let globalTradeIdx=1;
     for(let t of dTrades){
       const win=t.pnl>0, loss=t.pnl<0;
       const cls=win?'win':loss?'loss':'';
       html+=`<tr class="${cls}">
+        <td style="font-weight:bold;color:#64748b">#${globalTradeIdx++}</td>
         <td style="font-weight:bold">${fmtDate(t.et)}</td>
         <td>${fmtDate(t.xt)}</td>
         <td style="font-weight:bold;color:#0f172a">${(t.sym||'').replace('USDT','/USDT')}</td>
@@ -1623,6 +1629,84 @@ function generateChronologicalPDF(filterDate='ALL', reportTitle="EMA Tracker Chr
   setTimeout(()=>{
     try{ printWin.print(); }catch(e){}
   },500);
+}
+
+// ─────────────────────────────────────────────
+// DOWNLOAD TXT REPORT (100% UNLIMITED SIGNALS EXPORT)
+// ─────────────────────────────────────────────
+function downloadTXTReport(){
+  const now=new Date().toLocaleString();
+  const dateSelLive=document.getElementById('pdfDateSelLive')?document.getElementById('pdfDateSelLive').value:'ALL';
+  
+  let trades=getAllSignalsMaster();
+  if(dateSelLive!=='ALL'){
+    trades=trades.filter(t=>{
+      const dStr=getTradeDateStr(t);
+      if(!dStr) return false;
+      const shortFilter = dateSelLive.split('/').slice(0,2).join('/');
+      return dStr===dateSelLive || dStr.startsWith(shortFilter) || (t.dt&&t.dt.startsWith(shortFilter));
+    });
+  }
+
+  if(!trades.length){
+    toast('No trade signals found to export in TXT!');
+    return;
+  }
+
+  const wins=trades.filter(t=>t.pnl>0).length;
+  const winRate=Math.round(wins/trades.length*100);
+  const totalPnl=r2(trades.reduce((s,t)=>s+t.pnl,0));
+  const avgPnl=r2(totalPnl/trades.length);
+  const avgHH=r2(trades.reduce((s,t)=>s+(t.hhPct||0),0)/trades.length);
+  const avgLL=r2(trades.reduce((s,t)=>s+(t.llPct||0),0)/trades.length);
+
+  let txt=`================================================================================\n`;
+  txt+=`⚡ EMA MOMENTUM TRACKER — FULL TXT REPORT (${trades.length} SIGNALS)\n`;
+  txt+=`Generated: ${now}\n`;
+  txt+=`Filter: ${dateSelLive}\n`;
+  txt+=`================================================================================\n\n`;
+  txt+=`📊 SUMMARY STATS:\n`;
+  txt+=`- Total Signals: ${trades.length}\n`;
+  txt+=`- Win Rate: ${winRate}% (${wins} Wins / ${trades.length-wins} Losses)\n`;
+  txt+=`- Total P&L: ${totalPnl>=0?'+':''}${totalPnl}%\n`;
+  txt+=`- Avg P&L per Trade: ${avgPnl>=0?'+':''}${avgPnl}%\n`;
+  txt+=`- Avg Max Gain (HH): +${avgHH}%\n`;
+  txt+=`- Avg Max Drawdown (LL): ${avgLL}%\n\n`;
+  txt+=`================================================================================\n`;
+  txt+=`#   | ENTRY TIME   | EXIT TIME    | COIN      | CHAN        | DIR  | ENTRY $   | EXIT $    | PNL %   | HH %   | LL %   | DUR  | EXIT REASON\n`;
+  txt+=`================================================================================\n`;
+
+  let idx=1;
+  for(let t of trades){
+    const num=String(idx++).padStart(4,' ');
+    const et=fmtDate(t.et).padEnd(12,' ');
+    const xt=fmtDate(t.xt).padEnd(12,' ');
+    const sym=(t.sym||'').replace('USDT','/USDT').padEnd(9,' ');
+    const ch=(t.ch||'').padEnd(11,' ');
+    const dir=(t.dir||'UP').padEnd(4,' ');
+    const ep=p4(t.ep).padEnd(9,' ');
+    const xp=p4(t.xp).padEnd(9,' ');
+    const pnl=((t.pnl>=0?'+':'')+t.pnl+'%').padEnd(8,' ');
+    const hh=('+'+t.hhPct+'%').padEnd(7,' ');
+    const ll=(t.llPct+'%').padEnd(7,' ');
+    const dur=fmtDur(t.dur).padEnd(5,' ');
+    const reason=t.reason||'—';
+
+    txt+=`#${num} | ${et} | ${xt} | ${sym} | ${ch} | ${dir} | ${ep} | ${xp} | ${pnl} | ${hh} | ${ll} | ${dur} | ${reason}\n`;
+  }
+
+  txt+=`================================================================================\n`;
+  txt+=`END OF REPORT — ${trades.length} SIGNALS TOTAL\n`;
+
+  const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`EMA_Tracker_Full_Report_${dateSelLive.replace(/[^a-zA-Z0-9]/g,'_')}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  toast(`Exported ${trades.length} trades into TXT file!`);
 }
 
 // ─────────────────────────────────────────────
