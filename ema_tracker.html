@@ -247,7 +247,12 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
           <option value="bothEither">Both (Either Exit)</option>
           <option value="bothBoth">Both (Both Exit)</option>
         </select>
-        <button class="btn btn-grn btn-sm" onclick="loadPdfHistory()" title="Load historical PDF trades">📥 Load PDF Data</button>
+        <select id="pdfDateSel" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--t1);padding:3px 7px;border-radius:7px;font-size:10px">
+          <option value="TODAY">Today's Date</option>
+          <option value="ALL">All Dates</option>
+        </select>
+        <button class="btn btn-blu btn-sm" onclick="downloadDailyPDF()" title="Download PDF for selected date">📅 Daily PDF</button>
+        <button class="btn btn-grn btn-sm" onclick="downloadFullPDF()" title="Download complete all-time history PDF">📚 Full PDF</button>
         <button class="btn btn-sec btn-sm" onclick="clearHistory()">🗑️</button>
       </div>
     </div>
@@ -369,7 +374,7 @@ function saveHist(){
     return true;
   });
   allTrades=deduped;
-  localStorage.setItem(LS_HIST,JSON.stringify(allTrades.slice(0,600)));
+  localStorage.setItem(LS_HIST,JSON.stringify(allTrades));
 }
 function saveGain(){localStorage.setItem(LS_GAIN,JSON.stringify(gainers.slice(0,200)));}
 
@@ -1135,95 +1140,177 @@ function renderGainers(){
 // ─────────────────────────────────────────────
 // PDF DOWNLOAD
 // ─────────────────────────────────────────────
-function downloadPDF(){
-  // Build a printable summary page
+// ─────────────────────────────────────────────
+// PDF DOWNLOAD: CHRONOLOGICAL TIME-BASED DAILY & ALL-TIME
+// ─────────────────────────────────────────────
+function downloadDailyPDF(){
+  const dateSel=document.getElementById('pdfDateSel').value;
+  if(dateSel==='TODAY'){
+    const todayStr=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit'});
+    generateChronologicalPDF(todayStr, "Daily Report (" + todayStr + ")");
+  } else {
+    generateChronologicalPDF('ALL', "All-Time Complete History Report");
+  }
+}
+
+function downloadFullPDF(){
+  generateChronologicalPDF('ALL', "All-Time Complete History Report (Day-by-Day)");
+}
+
+function generateChronologicalPDF(filterDate='ALL', reportTitle="EMA Tracker Chronological Report"){
   const printWin=window.open('','_blank');
   const now=new Date().toLocaleString();
+
+  let trades=[...allTrades];
+  // Sort chronologically by entry time (newest first)
+  trades.sort((a,b)=>(b.et||0)-(a.et||0));
+
+  if(filterDate!=='ALL'){
+    trades=trades.filter(t=>{
+      const dStr=new Date(t.et).toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit'});
+      return dStr===filterDate || (t.dt&&t.dt.startsWith(filterDate));
+    });
+  }
+
   let html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>EMA Tracker Report - ${now}</title>
+  <title>${reportTitle} - ${now}</title>
   <style>
-    body{font-family:Arial,sans-serif;font-size:12px;color:#000;padding:20px;max-width:900px;margin:0 auto}
-    h1{font-size:20px;margin-bottom:4px;color:#1a1a1a}
-    h2{font-size:15px;margin:16px 0 8px;color:#333;border-bottom:2px solid #333;padding-bottom:4px}
-    h3{font-size:13px;margin:12px 0 6px;color:#555}
-    table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px}
-    th{background:#333;color:#fff;padding:6px 8px;text-align:left}
-    td{padding:5px 8px;border-bottom:1px solid #ddd}
-    tr:nth-child(even)td{background:#f9f9f9}
-    .win td:first-child{border-left:4px solid #2ecc71}
-    .loss td:first-child{border-left:4px solid #e74c3c}
-    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #333}
-    .stat-box{background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:8px 12px;display:inline-block;margin-right:8px;margin-bottom:6px;font-size:11px}
-    .stat-val{font-size:16px;font-weight:bold;color:#1a1a1a}
-    .green{color:#27ae60} .red{color:#c0392b} .blue{color:#2980b9}
-    .ch-label{font-size:10px;background:#eee;border:1px solid #ccc;border-radius:4px;padding:1px 6px;margin-right:4px}
-    .hh{color:#27ae60;font-weight:bold} .ll{color:#c0392b;font-weight:bold}
+    body{font-family:Arial,sans-serif;font-size:11px;color:#111;padding:20px;max-width:980px;margin:0 auto}
+    h1{font-size:20px;margin-bottom:4px;color:#0f172a}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #0f172a}
+    .date-card{background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:12px 16px;margin:18px 0 12px}
+    .date-title{font-size:15px;font-weight:bold;color:#1e293b;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+    .active-coins{font-size:11px;color:#475569;margin-bottom:8px;padding:6px 10px;background:#edf2f7;border-radius:6px}
+    .stat-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+    .stat-box{background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:6px 12px;font-size:10px;text-align:center;min-width:100px}
+    .stat-val{font-size:14px;font-weight:bold;color:#0f172a;margin-top:2px}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:10px}
+    th{background:#1e293b;color:#fff;padding:6px 8px;text-align:center;font-size:10px}
+    td{padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:center}
+    tr:nth-child(even) td{background:#f8fafc}
+    .win td:first-child{border-left:4px solid #10b981}
+    .loss td:first-child{border-left:4px solid #ef4444}
+    .green{color:#059669;font-weight:bold} .red{color:#dc2626;font-weight:bold}
+    .badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:bold}
+    .b-fast{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+    .b-slow{background:#dbeafe;color:#1e40af;border:1px solid #93c5fd}
+    .b-either{background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd}
+    .b-both{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
     @media print{button{display:none}}
   </style></head><body>`;
 
-  // Header
+  // Main Header
   html+=`<div class="header">
-    <div><h1>⚡ EMA Momentum Tracker Report</h1><div style="color:#666;font-size:11px">Generated: ${now}</div></div>
-    <button onclick="window.print()" style="padding:8px 16px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">🖨️ Print / Save PDF</button>
+    <div>
+      <h1>⚡ EMA Momentum Tracker — ${reportTitle}</h1>
+      <div style="color:#64748b;font-size:11px">Generated: ${now} • Time-Based Chronological Alignment</div>
+    </div>
+    <button onclick="window.print()" style="padding:8px 18px;background:#0f172a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold">🖨️ Print / Save PDF</button>
   </div>`;
 
-  // Summary stats per channel
-  const chNames={fast:'Fast EMA Only',slow:'Slow EMA Only',bothEither:'Both EMAs (Either Exit)',bothBoth:'Both EMAs (Both Exit)'};
-  const chKeys=['fast','slow','bothEither','bothBoth'];
-
-  for(let chk of chKeys){
-    const trades=allTrades.filter(t=>t.ch===chk);
-    if(!trades.length) continue;
-    const wins=trades.filter(t=>t.pnl>0).length;
-    const losses=trades.filter(t=>t.pnl<0).length;
-    const totalPnl=r2(trades.reduce((s,t)=>s+t.pnl,0));
-    const avgPnl=r2(totalPnl/trades.length);
-    const winRate=trades.length?Math.round(wins/trades.length*100):0;
-    const avgHH=r2(trades.reduce((s,t)=>s+(t.hhPct||0),0)/Math.max(1,trades.length));
-    const avgLL=r2(trades.reduce((s,t)=>s+(t.llPct||0),0)/Math.max(1,trades.length));
-
-    html+=`<h2>${chNames[chk]}</h2>`;
-    html+=`<div>
-      <div class="stat-box">Total Trades<br><span class="stat-val">${trades.length}</span></div>
-      <div class="stat-box">Win Rate<br><span class="stat-val ${winRate>=50?'green':'red'}">${winRate}%</span></div>
-      <div class="stat-box">Total P&L<br><span class="stat-val ${totalPnl>=0?'green':'red'}">${totalPnl>=0?'+':''}${totalPnl}%</span></div>
-      <div class="stat-box">Avg P&L<br><span class="stat-val ${avgPnl>=0?'green':'red'}">${avgPnl>=0?'+':''}${avgPnl}%</span></div>
-      <div class="stat-box">Avg Max Gain<br><span class="stat-val hh">+${avgHH}%</span></div>
-      <div class="stat-box">Avg Max Draw<br><span class="stat-val ll">${avgLL}%</span></div>
-    </div>`;
-
-    // Group by coin
-    const byCoin={};
-    for(let t of trades){const s=t.sym||'';if(!byCoin[s])byCoin[s]=[];byCoin[s].push(t);}
-
-    for(let [sym,ctrades] of Object.entries(byCoin)){
-      html+=`<h3>${sym.replace('USDT','/USDT')} (${ctrades.length} trades)</h3>`;
-      html+=`<table><tr><th>Entry Time</th><th>Exit Time</th><th>Entry $</th><th>Exit $</th><th>Dir</th><th>P&L %</th><th>HH</th><th>LL</th><th>Duration</th><th>Exit Reason</th></tr>`;
-      for(let t of ctrades){
-        const cls=t.pnl>0?'win':t.pnl<0?'loss':'';
-        html+=`<tr class="${cls}">
-          <td>${fmtDate(t.et)}</td><td>${fmtDate(t.xt)}</td>
-          <td>$${p4(t.ep)}</td><td>$${p4(t.xp)}</td>
-          <td>${t.dir==='UP'?'↑ UP':'↓ DOWN'}</td>
-          <td class="${t.pnl>=0?'green':'red'}" style="font-weight:bold">${t.pnl>=0?'+':''}${t.pnl}%</td>
-          <td class="hh">$${p4(t.hh)} (+${t.hhPct}%) <br><small style="color:#666">Bar +${t.hhBar||0} (${(t.hhBar||0)*5}m)</small></td>
-          <td class="ll">$${p4(t.ll)} (${t.llPct}%) <br><small style="color:#666">Bar +${t.llBar||0} (${(t.llBar||0)*5}m)</small></td>
-          <td>${fmtDur(t.dur)}</td>
-          <td>${t.reason||'—'}</td>
-        </tr>`;
-      }
-      html+=`</table>`;
-    }
+  if(!trades.length){
+    html+=`<div style="text-align:center;padding:40px;color:#64748b">No trades found for the selected filter (${filterDate}).</div></body></html>`;
+    printWin.document.write(html);
+    printWin.document.close();
+    return;
   }
 
-  // Gainer log
-  if(gainers.length){
-    html+=`<h2>🔥 Gainer Entry Log</h2>
-    <table><tr><th>Coin</th><th>Entry Price</th><th>Pump %</th><th>Date & Time</th></tr>`;
-    for(let g of gainers){
-      html+=`<tr><td>${g.sym.replace('USDT','/USDT')}</td><td>$${p4(g.price)}</td><td class="green">${g.chg>=0?'+':''}${g.chg.toFixed(2)}%</td><td>${g.dt_str} ${g.ts_str}</td></tr>`;
+  // Group trades by Date (e.g. 30/07/2026, 29/07/2026)
+  const byDate={};
+  for(let t of trades){
+    const dKey=new Date(t.et).toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'});
+    if(!byDate[dKey]) byDate[dKey]=[];
+    byDate[dKey].push(t);
+  }
+
+  const chBadges={fast:'<span class="badge b-fast">⚡ Fast</span>',slow:'<span class="badge b-slow">🔵 Slow</span>',bothEither:'<span class="badge b-either">🔥 Both-Either</span>',bothBoth:'<span class="badge b-both">❌ Both-Both</span>'};
+
+  for(let [dStr, dTrades] of Object.entries(byDate)){
+    // Get unique active coins for this date
+    const activeCoins=[...new Set(dTrades.map(t=>(t.sym||'').replace('USDT','/USDT')))].filter(Boolean);
+    const wins=dTrades.filter(t=>t.pnl>0).length;
+    const winRate=Math.round(wins/dTrades.length*100);
+    const totalPnl=r2(dTrades.reduce((s,t)=>s+t.pnl,0));
+    const avgPnl=r2(totalPnl/dTrades.length);
+    const avgHH=r2(dTrades.reduce((s,t)=>s+(t.hhPct||0),0)/dTrades.length);
+    const avgLL=r2(dTrades.reduce((s,t)=>s+(t.llPct||0),0)/dTrades.length);
+
+    html+=`<div class="date-card">
+      <div class="date-title">
+        <span>📅 Date: ${dStr}</span>
+        <span style="font-size:12px;color:#64748b">${dTrades.length} Total Signals Recorded</span>
+      </div>
+      <div class="active-coins">
+        <strong>🔍 Active Coins Scanned (${activeCoins.length}):</strong> ${activeCoins.join(', ')}
+      </div>
+      <div class="stat-row">
+        <div class="stat-box">Total Signals<br><div class="stat-val">${dTrades.length}</div></div>
+        <div class="stat-box">Win Rate<br><div class="stat-val ${winRate>=50?'green':'red'}">${winRate}%</div></div>
+        <div class="stat-box">Total P&L<br><div class="stat-val ${totalPnl>=0?'green':'red'}">${totalPnl>=0?'+':''}${totalPnl}%</div></div>
+        <div class="stat-box">Avg P&L<br><div class="stat-val ${avgPnl>=0?'green':'red'}">${avgPnl>=0?'+':''}${avgPnl}%</div></div>
+        <div class="stat-box">Avg Max Gain<br><div class="stat-val green">+${avgHH}%</div></div>
+        <div class="stat-box">Avg Max Draw<br><div class="stat-val red">${avgLL}%</div></div>
+      </div>
+    </div>`;
+
+    // Chronological Trades Table
+    html+=`<table>
+      <thead>
+        <tr>
+          <th>Entry Time</th>
+          <th>Exit Time</th>
+          <th>Coin</th>
+          <th>Channel</th>
+          <th>Dir</th>
+          <th>Entry $</th>
+          <th>Exit $</th>
+          <th>P&L %</th>
+          <th>HH (Max Gain)</th>
+          <th>LL (Max Draw)</th>
+          <th>Duration</th>
+          <th>Exit Reason</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+    for(let t of dTrades){
+      const win=t.pnl>0, loss=t.pnl<0;
+      const cls=win?'win':loss?'loss':'';
+      html+=`<tr class="${cls}">
+        <td style="font-weight:bold">${fmtDate(t.et)}</td>
+        <td>${fmtDate(t.xt)}</td>
+        <td style="font-weight:bold;color:#0f172a">${(t.sym||'').replace('USDT','/USDT')}</td>
+        <td>${chBadges[t.ch]||t.ch}</td>
+        <td style="font-weight:bold;color:${t.dir==='UP'?'#059669':'#dc2626'}">${t.dir==='UP'?'↑ UP':'↓ DOWN'}</td>
+        <td>$${p4(t.ep)}</td>
+        <td>$${p4(t.xp)}</td>
+        <td class="${t.pnl>=0?'green':'red'}">${t.pnl>=0?'+':''}${t.pnl}%</td>
+        <td class="green">$${p4(t.hh)} (+${t.hhPct}%)<br><small style="color:#64748b">Bar +${t.hhBar||0}</small></td>
+        <td class="red">$${p4(t.ll)} (${t.llPct}%)<br><small style="color:#64748b">Bar +${t.llBar||0}</small></td>
+        <td>${fmtDur(t.dur)}</td>
+        <td>${t.reason||'—'}</td>
+      </tr>`;
     }
-    html+=`</table>`;
+    html+=`</tbody></table>`;
+  }
+
+  // Gainer Entry Log
+  if(gainers.length){
+    html+=`<div class="date-card" style="margin-top:24px">
+      <div class="date-title">🔥 Gainer Entry Log (Coins Added to Scanner)</div>
+    </div>
+    <table>
+      <thead><tr><th>Coin</th><th>Entry Price</th><th>Pump %</th><th>Date & Time</th></tr></thead>
+      <tbody>`;
+    for(let g of gainers){
+      html+=`<tr>
+        <td style="font-weight:bold">${g.sym.replace('USDT','/USDT')}</td>
+        <td>$${p4(g.price)}</td>
+        <td class="green">${g.chg>=0?'+':''}${g.chg.toFixed(2)}%</td>
+        <td>${g.dt_str} ${g.ts_str}</td>
+      </tr>`;
+    }
+    html+=`</tbody></table>`;
   }
 
   html+=`</body></html>`;
