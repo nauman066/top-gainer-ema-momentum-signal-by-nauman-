@@ -219,6 +219,22 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
     </div>
   </div>
 
+  <!-- PDF EXPORT CARD IN LIVE TAB -->
+  <div class="card" style="border:1px solid rgba(59,130,246,0.3);background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(16,185,129,0.08))">
+    <div class="card-hdr">
+      <span class="card-title" style="color:#60a5fa">📄 PDF Reports & Downloads</span>
+      <span style="font-size:10px;color:var(--t2)">Chronological & Day-Wise</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px">
+      <select id="pdfDateSelLive" onchange="syncPdfDateSel(this.value)" style="flex:1;min-width:140px;background:rgba(255,255,255,0.12);border:1px solid var(--blue);color:var(--t1);padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700">
+        <option value="ALL">📚 All-Time History (All Dates)</option>
+        <option value="TODAY">📅 Today's Date</option>
+      </select>
+      <button class="btn btn-blu btn-sm" onclick="downloadDailyPDF()" style="flex:1;min-width:120px;padding:7px 12px;font-size:11px;font-weight:700">📅 Download Selected PDF</button>
+      <button class="btn btn-grn btn-sm" onclick="downloadFullPDF()" style="flex:1;min-width:120px;padding:7px 12px;font-size:11px;font-weight:700">📚 All-Time PDF</button>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-hdr">
       <span class="card-title">📊 Tracked Coins</span>
@@ -247,12 +263,12 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
           <option value="bothEither">Both (Either Exit)</option>
           <option value="bothBoth">Both (Both Exit)</option>
         </select>
-        <select id="pdfDateSel" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--t1);padding:3px 7px;border-radius:7px;font-size:10px">
-          <option value="TODAY">Today's Date</option>
-          <option value="ALL">All Dates</option>
+        <select id="pdfDateSel" onchange="syncPdfDateSel(this.value)" style="background:rgba(255,255,255,0.12);border:1px solid var(--blue);color:var(--t1);padding:3px 7px;border-radius:7px;font-size:10px;font-weight:700">
+          <option value="ALL">📚 All-Time History (All Dates)</option>
+          <option value="TODAY">📅 Today's Date</option>
         </select>
-        <button class="btn btn-blu btn-sm" onclick="downloadDailyPDF()" title="Download PDF for selected date">📅 Daily PDF</button>
-        <button class="btn btn-grn btn-sm" onclick="downloadFullPDF()" title="Download complete all-time history PDF">📚 Full PDF</button>
+        <button class="btn btn-blu btn-sm" onclick="downloadDailyPDF()" title="Download PDF for selected date">📅 Selected PDF</button>
+        <button class="btn btn-grn btn-sm" onclick="downloadFullPDF()" title="Download complete all-time history PDF">📚 All-Time PDF</button>
         <button class="btn btn-sec btn-sm" onclick="clearHistory()">🗑️</button>
       </div>
     </div>
@@ -875,6 +891,9 @@ function renderLive(){
 function buildSignalCard(tr){
   const sym=(tr.sym||'').replace('USDT','');
   const chLabel={fast:'⚡ Fast EMA',slow:'🔵 Slow EMA',bothEither:'🔥 Both-Either',bothBoth:'🔥 Both-Both'}[tr.ch]||tr.ch||'';
+  const cObj=coins[tr.sym];
+  const expInfo=getCoinExpiryInfo(cObj);
+  const expBadge=`<span style="font-size:8px;background:rgba(245,158,11,0.15);color:#fbbf24;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:6px;border:1px solid rgba(245,158,11,0.3)">⏳ ${expInfo.label}</span>`;
   
   if(tr.isOpen){
     const dur=Math.round((Date.now()-tr.et)/60000);
@@ -886,7 +905,11 @@ function buildSignalCard(tr){
       <div class="tr-card open-trade" style="margin-bottom:10px">
         <div class="tr-top">
           <div>
-            <div style="font-size:12px;font-weight:800;color:var(--text)">${sym}/USDT <span class="tr-badge open" style="margin-left:6px">🟡 OPEN SIGNAL</span></div>
+            <div style="font-size:12px;font-weight:800;color:var(--text);display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+              ${sym}/USDT 
+              <span class="tr-badge open">🟡 OPEN SIGNAL</span>
+              ${expBadge}
+            </div>
             <div style="font-size:9px;color:var(--blue);font-weight:700;margin-top:2px">${chLabel}</div>
           </div>
           <div style="text-align:right">
@@ -1112,28 +1135,35 @@ function updateHistFilters(){
   sel.innerHTML='<option value="ALL">All Coins</option>'+syms.map(s=>`<option value="${s}">${s.replace('USDT','')}</option>`).join('');
   if(syms.includes(cur)) sel.value=cur;
 
-  // Update PDF Date Selector with all unique available dates
+  // Update PDF Date Selectors with all unique available dates
   const pdfSel=document.getElementById('pdfDateSel');
-  if(pdfSel){
-    const curDate=pdfSel.value;
-    const dates=[...new Set(allTrades.map(t=>{
-      if(!t.et) return null;
-      const d=new Date(t.et);
-      const day=String(d.getDate()).padStart(2,'0');
-      const mon=String(d.getMonth()+1).padStart(2,'0');
-      const yr=d.getFullYear();
-      return `${day}/${mon}/${yr}`;
-    }).filter(Boolean))];
+  const pdfSelLive=document.getElementById('pdfDateSelLive');
+  
+  const dates=[...new Set(allTrades.map(t=>{
+    if(!t.et) return null;
+    const d=new Date(t.et);
+    const day=String(d.getDate()).padStart(2,'0');
+    const mon=String(d.getMonth()+1).padStart(2,'0');
+    const yr=d.getFullYear();
+    return `${day}/${mon}/${yr}`;
+  }).filter(Boolean))];
 
-    const todayStr=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'});
-    let opts=`<option value="ALL">📚 All-Time History (All Dates)</option>`;
-    opts+=`<option value="TODAY">📅 Today (${todayStr})</option>`;
-    for(let dt of dates){
-      opts+=`<option value="${dt}">📅 ${dt}</option>`;
-    }
-    pdfSel.innerHTML=opts;
-    if(curDate) pdfSel.value=curDate;
+  const todayStr=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'});
+  let opts=`<option value="ALL">📚 All-Time History (All Dates)</option>`;
+  opts+=`<option value="TODAY">📅 Today (${todayStr})</option>`;
+  for(let dt of dates){
+    opts+=`<option value="${dt}">📅 Date: ${dt}</option>`;
   }
+
+  if(pdfSel){ const c=pdfSel.value; pdfSel.innerHTML=opts; if(c) pdfSel.value=c; }
+  if(pdfSelLive){ const c=pdfSelLive.value; pdfSelLive.innerHTML=opts; if(c) pdfSelLive.value=c; }
+}
+
+function syncPdfDateSel(v){
+  const pdfSel=document.getElementById('pdfDateSel');
+  const pdfSelLive=document.getElementById('pdfDateSelLive');
+  if(pdfSel) pdfSel.value=v;
+  if(pdfSelLive) pdfSelLive.value=v;
 }
 
 // ─────────────────────────────────────────────
