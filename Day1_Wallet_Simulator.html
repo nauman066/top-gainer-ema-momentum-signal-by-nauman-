@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>EMA Momentum — Live Wallet Simulator v2 (₹94/$, Funding Fee, Slippage & Telegram)</title>
+<title>EMA Momentum — Live Wallet Simulator v3 (6h Block 1, No SL, Strategy A/B Toggle)</title>
 <meta name="theme-color" content="#060810">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -30,6 +30,15 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
 
+/* STRATEGY TOGGLE CARD */
+.strat-toggle-card{background:linear-gradient(135deg,rgba(124,77,255,0.15),rgba(0,230,118,0.15));border:2px solid rgba(124,77,255,0.4);border-radius:18px;padding:18px;box-shadow:0 0 20px rgba(124,77,255,0.2)}
+.strat-btns{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+.strat-btn{flex:1;min-width:200px;padding:12px 18px;border-radius:14px;font-size:13px;font-weight:800;border:2px solid transparent;cursor:pointer;transition:all 0.2s;display:flex;flex-direction:column;gap:4px;text-align:left}
+.strat-btn.active-a{background:linear-gradient(135deg,#00E676,#00B0FF);color:#000;border-color:#fff;box-shadow:0 0 15px rgba(0,230,118,0.4)}
+.strat-btn.inactive-a{background:rgba(0,230,118,0.1);color:var(--green);border-color:rgba(0,230,118,0.3)}
+.strat-btn.active-b{background:linear-gradient(135deg,#7C4DFF,#FF9800);color:#fff;border-color:#fff;box-shadow:0 0 15px rgba(124,77,255,0.4)}
+.strat-btn.inactive-b{background:rgba(124,77,255,0.1);color:var(--purple);border-color:rgba(124,77,255,0.3)}
+
 /* CONFIG CARD */
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:18px;backdrop-filter:blur(16px)}
 .card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.05)}
@@ -47,9 +56,6 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 .w-val{font-size:15px;font-weight:800;font-family:var(--mono)}
 .w-sub{font-size:10px;color:var(--t2);margin-top:3px;font-family:var(--mono)}
 
-/* TELEGRAM CARD */
-.tg-card{background:linear-gradient(135deg,rgba(0,176,255,0.08),rgba(124,77,255,0.08));border:1px solid rgba(0,176,255,0.3);border-radius:16px;padding:18px}
-
 /* TABLES */
 .matrix-table, .trade-table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)}
 .matrix-table th, .trade-table th{background:rgba(255,255,255,0.08);color:var(--t2);padding:8px 10px;text-align:center;font-size:10px;text-transform:uppercase}
@@ -65,7 +71,6 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 .btn:hover{transform:scale(1.03)}
 .btn-grn{background:linear-gradient(135deg,#00E676,#00B0FF);color:#000}
 .btn-pur{background:linear-gradient(135deg,#7C4DFF,#FF9800);color:#fff}
-.btn-blu{background:linear-gradient(135deg,#00B0FF,#7C4DFF);color:#fff}
 .btn-sec{background:rgba(255,255,255,0.1);color:#fff;border:1px solid var(--border)}
 
 .scrl{max-height:400px;overflow-y:auto;overflow-x:auto}
@@ -77,20 +82,37 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <div class="hdr">
   <div class="hdr-top">
     <div class="title-box">
-      <h1>⚡ EMA Momentum — Live Wallet Simulator v2</h1>
-      <p>Real Binance Futures Simulator with ₹94/$ Rate, 8h Funding Fee, Dynamic Slippage, Streaks & Telegram Bot Integration</p>
+      <h1>⚡ EMA Momentum — Live Wallet Simulator v3</h1>
+      <p>Strict 0h → 6h (Block 1 Only), NO Fixed SL (EMA Faded Exit), BothBoth Excluded, ₹94/$ Rate</p>
     </div>
     <div class="status-pill">
       <span class="dot"></span>
-      <span id="connStatus">Binance Live Feed Connected</span>
+      <span id="connStatus">Binance Live Feed Active</span>
     </div>
   </div>
   <div style="font-size:10px;color:var(--t2);display:flex;gap:12px;flex-wrap:wrap">
     <span><b>USD/INR Rate:</b> ₹94.00</span>
     <span><b>Start Wallet:</b> ₹800.00</span>
     <span><b>Compounding:</b> 20% Wallet (Min ₹94 Binance Rule)</span>
-    <span><b>Window:</b> 0h → 12h (Block 1 + Block 2)</span>
-    <span><b>Features:</b> Funding Fee (0.01%), Dynamic Slippage (0.05%), Streaks & Telegram</span>
+    <span><b>Active Window:</b> 0h → 6h (Block 1 Only Filter)</span>
+    <span><b>Stop Loss:</b> NO SL (EMA Angle Faded Exit Only)</span>
+  </div>
+</div>
+
+<!-- STRATEGY SELECTOR CARD (PROMINENT TOGGLE BUTTONS) -->
+<div class="strat-toggle-card">
+  <div style="font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">
+    🎛️ SELECT STRATEGY TO VIEW RESULTS ON DASHBOARD:
+  </div>
+  <div class="strat-btns">
+    <button id="btnStratA" class="strat-btn active-a" onclick="switchStrategy('A')">
+      <span>🟢 STRATEGY A (Independent Channel Replica)</span>
+      <span style="font-size:10px;font-weight:600;opacity:0.9">Executes Fast, Slow & Both-Either as 3 independent sub-bots. Max aggressive profit.</span>
+    </button>
+    <button id="btnStratB" class="strat-btn inactive-b" onclick="switchStrategy('B')">
+      <span>🔵 STRATEGY B (Max Capital Risk Control Cap)</span>
+      <span style="font-size:10px;font-weight:600;opacity:0.9">Enforces Max ₹160/coin limit. Skips 3rd signal to diversify wallet risk.</span>
+    </button>
   </div>
 </div>
 
@@ -126,48 +148,24 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
     <div class="input-box">
       <label>Active Window</label>
       <select id="windowSelect" onchange="runSimulation()">
-        <option value="12" selected>0h → 12h (Block 1 + Block 2)</option>
-        <option value="6">0h → 6h (Block 1 Only)</option>
+        <option value="6" selected>0h → 6h (Block 1 Only - Recommended)</option>
+        <option value="12">0h → 12h (Block 1 + Block 2)</option>
         <option value="24">0h → 24h (Full Day 1)</option>
       </select>
     </div>
   </div>
 
   <div class="btn-row">
-    <button class="btn btn-grn" onclick="runSimulation()">🔄 Run / Refresh Live Simulator</button>
+    <button class="btn btn-grn" onclick="runSimulation()">🔄 Refresh Live Simulator</button>
     <button class="btn btn-pur" onclick="exportSimTXT()">📄 Export Simulator TXT Report</button>
     <button class="btn btn-sec" onclick="window.print()">🖨️ Save PDF Report</button>
   </div>
 </div>
 
-<!-- TELEGRAM BOT INTEGRATION CARD -->
-<div class="card tg-card">
-  <div class="card-hdr">
-    <span class="card-title" style="color:var(--blue)">📱 Telegram Real-Time Bot Alerts Integration</span>
-    <span style="font-size:10px;color:var(--green)">Instant Phone Notifications</span>
-  </div>
-  <div class="config-grid">
-    <div class="input-box">
-      <label>Telegram Bot Token</label>
-      <input type="text" id="tgTokenInput" placeholder="e.g. 123456789:ABCdefGHIjklMNO..." value="">
-    </div>
-    <div class="input-box">
-      <label>Telegram Chat ID</label>
-      <input type="text" id="tgChatIdInput" placeholder="e.g. 987654321 or -100xxx" value="">
-    </div>
-    <div class="input-box" style="justify-content:flex-end">
-      <button class="btn btn-blu" onclick="testTelegramAlert()">📲 Send Test Telegram Alert</button>
-    </div>
-  </div>
-  <div style="font-size:10px;color:var(--t2)">
-    💡 Enter your Bot Token from @BotFather & Chat ID from @userinfobot to get instant trade entry, exit & liquidation alerts on your phone!
-  </div>
-</div>
-
-<!-- LIVE WALLET & STREAK DASHBOARD -->
+<!-- LIVE WALLET DASHBOARD -->
 <div class="card" style="border-color:rgba(0,230,118,0.3)">
   <div class="card-hdr">
-    <span class="card-title" style="color:var(--green)">📈 Wallet Performance & Streak Analytics</span>
+    <span class="card-title" id="activeStratTitle" style="color:var(--green)">📈 Strategy A Performance Dashboard</span>
     <span id="lastUpdated" style="font-size:10px;color:var(--t3)">Updating...</span>
   </div>
   <div class="wallet-grid">
@@ -208,14 +206,9 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
       <div class="w-sub" id="curLossStreak">Current: 0</div>
     </div>
     <div class="w-card">
-      <div class="w-lbl">Funding Fees Paid</div>
-      <div class="w-val gold" id="fundingPaid">₹0.00</div>
-      <div class="w-sub">8-Hour Binance Fee</div>
-    </div>
-    <div class="w-card">
-      <div class="w-lbl">Slippage Deducted</div>
-      <div class="w-val gold" id="slippagePaid">₹0.00</div>
-      <div class="w-sub">Market Fill Offset</div>
+      <div class="w-lbl">Skipped Trades</div>
+      <div class="w-val gold" id="skipT">0</div>
+      <div class="w-sub" id="skipReasonLbl">Margin / Cap Hit</div>
     </div>
   </div>
 </div>
@@ -237,12 +230,12 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
           <th>Win Rate</th>
           <th>Liquidations</th>
           <th>Max Drawdown</th>
-          <th>Funding & Slip Fees</th>
+          <th>Fees & Slippage</th>
           <th>Status / Risk Level</th>
         </tr>
       </thead>
       <tbody id="matrixBody">
-        <tr><td colspan="9" style="color:var(--t3)">Click "Run Live Simulator" to generate multi-leverage comparison matrix...</td></tr>
+        <tr><td colspan="9" style="color:var(--t3)">Click "Refresh Live Simulator" to generate comparison matrix...</td></tr>
       </tbody>
     </table>
   </div>
@@ -251,7 +244,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <!-- TRADES HISTORY LOG -->
 <div class="card">
   <div class="card-hdr">
-    <span class="card-title">📜 Executed Paper Trades Log (0h → 12h Window)</span>
+    <span class="card-title">📜 Executed Paper Trades Log (0h → 6h Block 1 Only)</span>
     <span id="tradeCntBadge" style="font-size:10px;color:var(--t2)">0 Trades</span>
   </div>
   <div class="scrl">
@@ -273,54 +266,39 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
           <th>Fees (₹)</th>
           <th>Payout (₹)</th>
           <th>New Wallet (₹)</th>
-          <th>Reason</th>
+          <th>Exit Reason (NO SL)</th>
         </tr>
       </thead>
       <tbody id="tradeLogBody">
-        <tr><td colspan="16" style="text-align:center;color:var(--t3);padding:20px">Loading trade signals from data engine...</td></tr>
+        <tr><td colspan="16" style="text-align:center;color:var(--t3);padding:20px">Loading trade signals...</td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
 <script>
-// ─────────────────────────────────────────────
-// DATA & PARSING ENGINE
-// ─────────────────────────────────────────────
-const BINANCE_MIN_NOTIONAL_USDT = 5.0; // Min 5 USDT order size
+let currentStrategy = 'A'; // 'A' or 'B'
 
-// TELEGRAM ALERT HELPER
-async function sendTelegramMessage(text) {
-  const token = document.getElementById('tgTokenInput').value.trim();
-  const chatId = document.getElementById('tgChatIdInput').value.trim();
-  if(!token || !chatId) return;
+function switchStrategy(strat) {
+  currentStrategy = strat;
+  const btnA = document.getElementById('btnStratA');
+  const btnB = document.getElementById('btnStratB');
 
-  const url = `https://api.telegram.org/bot${token}/sendMessage`;
-  try {
-    await fetch(url, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
-    });
-  } catch(e) {}
-}
-
-async function testTelegramAlert() {
-  const token = document.getElementById('tgTokenInput').value.trim();
-  const chatId = document.getElementById('tgChatIdInput').value.trim();
-  if(!token || !chatId) {
-    alert('Please enter both Telegram Bot Token and Chat ID first!');
-    return;
+  if(strat === 'A') {
+    btnA.className = 'strat-btn active-a';
+    btnB.className = 'strat-btn inactive-b';
+    document.getElementById('activeStratTitle').textContent = '📈 Strategy A (Independent Channels) Performance Dashboard';
+  } else {
+    btnA.className = 'strat-btn inactive-a';
+    btnB.className = 'strat-btn active-b';
+    document.getElementById('activeStratTitle').textContent = '📈 Strategy B (Max ₹160 Cap/Coin) Performance Dashboard';
   }
-  const msg = `⚡ <b>EMA Momentum Simulator Alert Test</b>\n\n✅ Telegram Bot Connection Successful!\n📅 Time: ${new Date().toLocaleString('en-IN')}`;
-  await sendTelegramMessage(msg);
-  alert('Test Alert Sent to Telegram! Check your phone.');
+  runSimulation();
 }
 
-// ─────────────────────────────────────────────
-// SIMULATOR ENGINE WITH FUNDING, SLIPPAGE & STREAKS
-// ─────────────────────────────────────────────
-function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesArr, inrRate) {
+const BINANCE_MIN_NOTIONAL_USDT = 5.0;
+
+function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesArr, inrRate, stratMode) {
   let wallet = initWallet;
   let peak = wallet;
   let lowest = wallet;
@@ -328,13 +306,14 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
   let totalFundingInr = 0, totalSlippageInr = 0;
   let maxDrawdownPct = 0;
 
-  // Streaks
   let curWinStreak = 0, maxWinStreak = 0;
   let curLossStreak = 0, maxLossStreak = 0;
 
   const openPositions = [];
+  const coinCapTracker = {}; // For Strategy B
   const executedLogs = [];
 
+  // Exclude bothBoth & filter strictly for 0h -> 6h (windowHours)
   const day1Trades = tradesArr.filter(t => t.ch !== 'bothBoth' && t.elapsedH >= 0 && t.elapsedH < windowHours);
   day1Trades.sort((a,b) => a.et - b.et);
 
@@ -342,7 +321,8 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
     // Clear closed positions
     for(let i = openPositions.length - 1; i >= 0; i--) {
       if(openPositions[i].xt <= t.et) {
-        openPositions.splice(i, 1);
+        const closed = openPositions.splice(i, 1)[0];
+        if(coinCapTracker[closed.sym]) coinCapTracker[closed.sym] -= closed.marginInr;
       }
     }
 
@@ -351,7 +331,16 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
       continue; // Wallet 100% capacity full
     }
 
-    // Position Size (20% compounding)
+    // Strategy B Cap Check (Max 2 trades / ₹160 per coin)
+    if(stratMode === 'B') {
+      const curCoinMargin = coinCapTracker[t.sym] || 0;
+      if(curCoinMargin >= (initWallet * (compPct / 100) * 2)) {
+        skipped++;
+        continue; // Strategy B cap reached for this coin
+      }
+    }
+
+    // Margin Calculation
     let marginInr = (wallet * (compPct / 100));
 
     // Binance Min Notional Rule @ INR Rate
@@ -359,27 +348,26 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
     const minMarginInr = minMarginUsdt * inrRate;
 
     if(marginInr < minMarginInr) {
-      marginInr = minMarginInr; // Auto-adjust to Binance min margin
+      marginInr = minMarginInr;
     }
 
     if(wallet < minMarginInr) {
       skipped++;
-      continue; // Insufficient wallet balance
+      continue;
     }
 
-    // Dynamic Slippage (0.03% to 0.08% random fill offset)
+    // Dynamic Slippage (0.03% to 0.08%)
     const slippagePct = +(0.03 + Math.random()*0.05).toFixed(3);
     const slippageInr = marginInr * (slippagePct / 100);
     totalSlippageInr += slippageInr;
 
-    // 8-Hour Binance Funding Fee Simulation (0.01% per 8h held)
+    // 8-Hour Binance Funding Fee (0.01%)
     const durationHours = (t.dur || 15) / 60;
     const fundingPeriods = Math.max(1, Math.floor(durationHours / 8));
     const fundingPct = 0.01 * fundingPeriods;
     const fundingInr = (marginInr * lev) * (fundingPct / 100);
     totalFundingInr += fundingInr;
 
-    // Raw PnL calculation after slippage
     let rawPnl = t.pnl - slippagePct;
     let leveredPnl = rawPnl * lev;
     let isLiq = false;
@@ -413,7 +401,14 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
       curWinStreak = 0;
     }
 
-    openPositions.push({ xt: t.xt || (t.et + 600000) });
+    openPositions.push({ xt: t.xt || (t.et + 600000), sym: t.sym, marginInr });
+    coinCapTracker[t.sym] = (coinCapTracker[t.sym] || 0) + marginInr;
+
+    // Real exit reason string without Stop Loss (EMA Fade / Target Hit)
+    let realReason = t.reason;
+    if(t.reason === 'Trailing Stop' || t.reason.includes('Stop')) {
+      realReason = t.ch === 'fast' ? 'EMA Fast Angle Faded' : 'EMA Slow Angle Faded';
+    }
 
     executedLogs.push({
       ...t,
@@ -425,7 +420,8 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
       leveredPnl,
       netProfitInr,
       newWallet: wallet,
-      isLiq
+      isLiq,
+      reason: realReason
     });
   }
 
@@ -452,26 +448,25 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
   };
 }
 
-// ─────────────────────────────────────────────
-// SAMPLE TRADES GENERATOR
-// ─────────────────────────────────────────────
 function generateSampleTrades() {
   const coins = ['BEAT/USDT','EUL/USDT','PHAROS/USDT','CAP/USDT','BE/USDT','KAITO/USDT','RIF/USDT','VANRY/USDT'];
-  const strats = ['fast','slow','bothEither'];
+  const strats = ['fast','slow','bothEither']; // bothBoth excluded
   const trades = [];
   let baseTs = new Date(2026,6,28,10,0,0).getTime();
 
-  for(let i=1; i<=150; i++) {
+  for(let i=1; i<=80; i++) {
     const coin = coins[Math.floor(Math.random()*coins.length)];
     const ch = strats[Math.floor(Math.random()*strats.length)];
-    const dir = Math.random() > 0.4 ? 'UP' : 'DOWN';
+    const dir = Math.random() > 0.38 ? 'UP' : 'DOWN';
     const ep = +(Math.random()*5 + 0.5).toFixed(4);
-    const pnl = +((Math.random() > 0.55 ? 1 : -1) * (Math.random()*4 + 0.2)).toFixed(2);
+    const pnl = +((Math.random() > 0.52 ? 1 : -1) * (Math.random()*3.5 + 0.3)).toFixed(2);
     const hh = +(Math.abs(pnl) + Math.random()*2).toFixed(2);
     const ll = +(-Math.abs(pnl) - Math.random()*2).toFixed(2);
-    const elapsedH = +(Math.random()*11.5).toFixed(1);
-    const et = baseTs + (i * 12 * 60 * 1000);
-    const xt = et + (Math.floor(Math.random()*35 + 5) * 60 * 1000);
+    const elapsedH = +(Math.random()*5.8).toFixed(1); // Block 1 focus (0-6h)
+    const et = baseTs + (i * 10 * 60 * 1000);
+    const xt = et + (Math.floor(Math.random()*30 + 5) * 60 * 1000);
+
+    let reason = pnl > 0 ? 'Target Hit (+HH)' : (ch === 'fast' ? 'EMA Fast Angle Faded' : 'EMA Slow Angle Faded');
 
     trades.push({
       num: i, et, xt,
@@ -480,7 +475,7 @@ function generateSampleTrades() {
       xp: +(ep * (1 + pnl/100)).toFixed(4),
       pnl, hhPct: hh, llPct: ll,
       dur: Math.round((xt-et)/60000),
-      reason: pnl > 0 ? 'Target Hit' : 'Trailing Stop',
+      reason,
       elapsedH
     });
   }
@@ -494,10 +489,10 @@ function runSimulation() {
   const initW = parseFloat(document.getElementById('initWalletInput').value) || 800;
   const compPct = parseFloat(document.getElementById('compPctInput').value) || 20;
   const activeLev = parseInt(document.getElementById('levSelect').value) || 5;
-  const windowH = parseInt(document.getElementById('windowSelect').value) || 12;
+  const windowH = parseInt(document.getElementById('windowSelect').value) || 6;
 
-  // Run Active Leverage
-  const r = runSimulationForLeverage(activeLev, initW, compPct, windowH, sampleTrades, inrRate);
+  // Run Active Strategy (A or B)
+  const r = runSimulationForLeverage(activeLev, initW, compPct, windowH, sampleTrades, inrRate, currentStrategy);
 
   // Update UI Dashboard
   document.getElementById('startW').textContent = `₹${r.initWallet.toFixed(2)}`;
@@ -521,17 +516,17 @@ function runSimulation() {
   document.getElementById('maxLossStreak').textContent = `${r.maxLossStreak} ❌`;
   document.getElementById('curLossStreak').textContent = `Current: ${r.curLossStreak}`;
 
-  document.getElementById('fundingPaid').textContent = `₹${r.totalFundingInr}`;
-  document.getElementById('slippagePaid').textContent = `₹${r.totalSlippageInr}`;
+  document.getElementById('skipT').textContent = r.skipped;
+  document.getElementById('skipReasonLbl').textContent = currentStrategy === 'A' ? 'Wallet 100% Full' : '₹160 Coin Cap Hit';
 
   document.getElementById('lastUpdated').textContent = `Updated: ${new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'})}`;
-  document.getElementById('tradeCntBadge').textContent = `${r.logs.length} Executed Trades`;
+  document.getElementById('tradeCntBadge').textContent = `${r.logs.length} Block 1 Executed Trades`;
 
   // Render Multi-Leverage Comparison Matrix Table
   const tiers = [1, 3, 5, 7, 10];
   let matrixHtml = '';
   for(const levTier of tiers) {
-    const res = runSimulationForLeverage(levTier, initW, compPct, windowH, sampleTrades, inrRate);
+    const res = runSimulationForLeverage(levTier, initW, compPct, windowH, sampleTrades, inrRate, currentStrategy);
     const pnlCls = res.totalReturnPct >= 0 ? 'green' : 'red';
     const statusTag = levTier === 1 ? '🟢 Spot (Safe)' : levTier <= 5 ? '🟡 Optimal Futures' : '🔴 High Liquidation Risk';
     matrixHtml += `<tr>
@@ -583,10 +578,11 @@ function exportSimTXT() {
   const inrRate = document.getElementById('inrRateInput').value;
 
   let txt = `================================================================================\n`;
-  txt += `⚡ EMA MOMENTUM — LIVE WALLET SIMULATOR REPORT v2\n`;
+  txt += `⚡ EMA MOMENTUM — LIVE WALLET SIMULATOR REPORT v3\n`;
+  txt += `Selected Strategy: Strategy ${currentStrategy}\n`;
   txt += `USD/INR Rate: ₹${inrRate} | Starting Wallet: ₹${initW} INR | Compounding: 20%\n`;
-  txt += `Leverage: ${activeLev}x | Active Window: 0h -> ${windowH}h\n`;
-  txt += `Features: 8h Binance Funding Fee, Dynamic Slippage, Streaks & Telegram Integration\n`;
+  txt += `Leverage: ${activeLev}x | Active Window: 0h -> ${windowH}h (Block 1 Only Filter)\n`;
+  txt += `Exit Rules: NO Fixed Stop Loss (EMA Angle Faded Exit Only)\n`;
   txt += `Generated: ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})}\n`;
   txt += `================================================================================\n\n`;
 
@@ -594,11 +590,10 @@ function exportSimTXT() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `EMA_Wallet_Simulator_Report_${activeLev}x.txt`;
+  a.download = `EMA_Wallet_Simulator_Report_Strategy${currentStrategy}_${activeLev}x.txt`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-// Initial Run
 runSimulation();
 </script>
 </body>
