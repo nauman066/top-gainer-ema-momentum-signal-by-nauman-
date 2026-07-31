@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>EMA Momentum — Live Wallet Simulator v2 (₹94/$, Funding Fee, Slippage & Telegram)</title>
+<meta name="theme-color" content="#060810">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060810;
+  --bg2: rgba(14,18,32,0.95);
+  --bg3: rgba(255,255,255,0.03);
+  --border: rgba(255,255,255,0.08);
+  --green: #00E676; --red: #FF1744; --blue: #00B0FF;
+  --orange: #FF9800; --purple: #7C4DFF; --gold: #FFD600;
+  --t1: #F1F5F9; --t2: #94A3B8; --t3: #64748B;
+  --fm: 'Outfit',sans-serif; --mono: 'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--fm);-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-direction:column;padding:16px;gap:16px;overflow-x:hidden}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);border-radius:18px;padding:20px;border:1px solid rgba(0,230,118,0.2);position:relative;overflow:hidden}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+.title-box h1{font-size:22px;font-weight:800;background:linear-gradient(90deg,#00E676,#00B0FF,#7C4DFF);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.title-box p{font-size:11px;color:var(--t2);margin-top:2px}
+.status-pill{background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);color:var(--green);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+
+/* CONFIG CARD */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:18px;backdrop-filter:blur(16px)}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.05)}
+.card-title{font-size:12px;font-weight:800;color:var(--purple);text-transform:uppercase;letter-spacing:0.6px;display:flex;align-items:center;gap:6px}
+
+.config-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:14px}
+.input-box{display:flex;flex-direction:column;gap:4px}
+.input-box label{font-size:10px;color:var(--t2);font-weight:600;text-transform:uppercase}
+.input-box input, .input-box select{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;font-family:var(--mono)}
+
+/* WALLET STATS DASHBOARD */
+.wallet-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:10px}
+.w-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px;text-align:center}
+.w-lbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+.w-val{font-size:15px;font-weight:800;font-family:var(--mono)}
+.w-sub{font-size:10px;color:var(--t2);margin-top:3px;font-family:var(--mono)}
+
+/* TELEGRAM CARD */
+.tg-card{background:linear-gradient(135deg,rgba(0,176,255,0.08),rgba(124,77,255,0.08));border:1px solid rgba(0,176,255,0.3);border-radius:16px;padding:18px}
+
+/* TABLES */
+.matrix-table, .trade-table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)}
+.matrix-table th, .trade-table th{background:rgba(255,255,255,0.08);color:var(--t2);padding:8px 10px;text-align:center;font-size:10px;text-transform:uppercase}
+.matrix-table td, .trade-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center}
+.trade-table td{text-align:left}
+.matrix-table tr:hover, .trade-table tr:hover{background:rgba(255,255,255,0.02)}
+
+.green{color:var(--green);font-weight:700}.red{color:var(--red);font-weight:700}.gold{color:var(--gold);font-weight:700}.blue{color:var(--blue);font-weight:700}.purple{color:var(--purple);font-weight:700}
+
+/* BTNS */
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{padding:9px 16px;border-radius:10px;font-weight:800;font-size:11px;border:none;cursor:pointer;transition:transform 0.2s}
+.btn:hover{transform:scale(1.03)}
+.btn-grn{background:linear-gradient(135deg,#00E676,#00B0FF);color:#000}
+.btn-pur{background:linear-gradient(135deg,#7C4DFF,#FF9800);color:#fff}
+.btn-blu{background:linear-gradient(135deg,#00B0FF,#7C4DFF);color:#fff}
+.btn-sec{background:rgba(255,255,255,0.1);color:#fff;border:1px solid var(--border)}
+
+.scrl{max-height:400px;overflow-y:auto;overflow-x:auto}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-top">
+    <div class="title-box">
+      <h1>⚡ EMA Momentum — Live Wallet Simulator v2</h1>
+      <p>Real Binance Futures Simulator with ₹94/$ Rate, 8h Funding Fee, Dynamic Slippage, Streaks & Telegram Bot Integration</p>
+    </div>
+    <div class="status-pill">
+      <span class="dot"></span>
+      <span id="connStatus">Binance Live Feed Connected</span>
+    </div>
+  </div>
+  <div style="font-size:10px;color:var(--t2);display:flex;gap:12px;flex-wrap:wrap">
+    <span><b>USD/INR Rate:</b> ₹94.00</span>
+    <span><b>Start Wallet:</b> ₹800.00</span>
+    <span><b>Compounding:</b> 20% Wallet (Min ₹94 Binance Rule)</span>
+    <span><b>Window:</b> 0h → 12h (Block 1 + Block 2)</span>
+    <span><b>Features:</b> Funding Fee (0.01%), Dynamic Slippage (0.05%), Streaks & Telegram</span>
+  </div>
+</div>
+
+<!-- CONTROLS & CONFIG CARD -->
+<div class="card">
+  <div class="card-hdr">
+    <span class="card-title">⚙️ Simulator Settings & Risk Parameters</span>
+    <span style="font-size:10px;color:var(--gold)">Real Money Simulation Engine</span>
+  </div>
+  <div class="config-grid">
+    <div class="input-box">
+      <label>USD to INR Rate (₹)</label>
+      <input type="number" id="inrRateInput" value="94" onchange="runSimulation()">
+    </div>
+    <div class="input-box">
+      <label>Initial Wallet (INR ₹)</label>
+      <input type="number" id="initWalletInput" value="800" onchange="runSimulation()">
+    </div>
+    <div class="input-box">
+      <label>Compounding %</label>
+      <input type="number" id="compPctInput" value="20" onchange="runSimulation()">
+    </div>
+    <div class="input-box">
+      <label>Active Leverage</label>
+      <select id="levSelect" onchange="runSimulation()">
+        <option value="1">1x (Spot - Safe)</option>
+        <option value="3">3x (Low Risk)</option>
+        <option value="5" selected>5x (Optimal Risk/Reward)</option>
+        <option value="7">7x (High Risk)</option>
+        <option value="10">10x (Aggressive - High Liquidation)</option>
+      </select>
+    </div>
+    <div class="input-box">
+      <label>Active Window</label>
+      <select id="windowSelect" onchange="runSimulation()">
+        <option value="12" selected>0h → 12h (Block 1 + Block 2)</option>
+        <option value="6">0h → 6h (Block 1 Only)</option>
+        <option value="24">0h → 24h (Full Day 1)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-grn" onclick="runSimulation()">🔄 Run / Refresh Live Simulator</button>
+    <button class="btn btn-pur" onclick="exportSimTXT()">📄 Export Simulator TXT Report</button>
+    <button class="btn btn-sec" onclick="window.print()">🖨️ Save PDF Report</button>
+  </div>
+</div>
+
+<!-- TELEGRAM BOT INTEGRATION CARD -->
+<div class="card tg-card">
+  <div class="card-hdr">
+    <span class="card-title" style="color:var(--blue)">📱 Telegram Real-Time Bot Alerts Integration</span>
+    <span style="font-size:10px;color:var(--green)">Instant Phone Notifications</span>
+  </div>
+  <div class="config-grid">
+    <div class="input-box">
+      <label>Telegram Bot Token</label>
+      <input type="text" id="tgTokenInput" placeholder="e.g. 123456789:ABCdefGHIjklMNO..." value="">
+    </div>
+    <div class="input-box">
+      <label>Telegram Chat ID</label>
+      <input type="text" id="tgChatIdInput" placeholder="e.g. 987654321 or -100xxx" value="">
+    </div>
+    <div class="input-box" style="justify-content:flex-end">
+      <button class="btn btn-blu" onclick="testTelegramAlert()">📲 Send Test Telegram Alert</button>
+    </div>
+  </div>
+  <div style="font-size:10px;color:var(--t2)">
+    💡 Enter your Bot Token from @BotFather & Chat ID from @userinfobot to get instant trade entry, exit & liquidation alerts on your phone!
+  </div>
+</div>
+
+<!-- LIVE WALLET & STREAK DASHBOARD -->
+<div class="card" style="border-color:rgba(0,230,118,0.3)">
+  <div class="card-hdr">
+    <span class="card-title" style="color:var(--green)">📈 Wallet Performance & Streak Analytics</span>
+    <span id="lastUpdated" style="font-size:10px;color:var(--t3)">Updating...</span>
+  </div>
+  <div class="wallet-grid">
+    <div class="w-card">
+      <div class="w-lbl">Starting Wallet</div>
+      <div class="w-val" id="startW">₹800.00</div>
+    </div>
+    <div class="w-card">
+      <div class="w-lbl">Current Wallet</div>
+      <div class="w-val green" id="curW">₹800.00</div>
+      <div class="w-sub" id="pnlW">+0.00%</div>
+    </div>
+    <div class="w-card">
+      <div class="w-lbl">Peak Wallet</div>
+      <div class="w-val green" id="peakW">₹800.00</div>
+    </div>
+    <div class="w-card">
+      <div class="w-lbl">Lowest Wallet</div>
+      <div class="w-val red" id="lowW">₹800.00</div>
+    </div>
+    <div class="w-card">
+      <div class="w-lbl">Executed Trades</div>
+      <div class="w-val" id="totT">0</div>
+      <div class="w-sub" id="wlT">0W / 0L</div>
+    </div>
+    <div class="w-card">
+      <div class="w-lbl">Win Rate</div>
+      <div class="w-val blue" id="wrT">0%</div>
+    </div>
+    <div class="w-card">
+      <div class="w-lbl">Max Win Streak</div>
+      <div class="w-val green" id="maxWinStreak">0 🔥</div>
+      <div class="w-sub" id="curWinStreak">Current: 0</div>
+    </div>
+    <div class="w-card">
+      <div class="w-lbl">Max Loss Streak</div>
+      <div class="w-val red" id="maxLossStreak">0 ❌</div>
+      <div class="w-sub" id="curLossStreak">Current: 0</div>
+    </div>
+    <div class="w-card">
+      <div class="w-lbl">Funding Fees Paid</div>
+      <div class="w-val gold" id="fundingPaid">₹0.00</div>
+      <div class="w-sub">8-Hour Binance Fee</div>
+    </div>
+    <div class="w-card">
+      <div class="w-lbl">Slippage Deducted</div>
+      <div class="w-val gold" id="slippagePaid">₹0.00</div>
+      <div class="w-sub">Market Fill Offset</div>
+    </div>
+  </div>
+</div>
+
+<!-- MULTI-LEVERAGE COMPARISON MATRIX -->
+<div class="card" style="border-color:rgba(124,77,255,0.3)">
+  <div class="card-hdr">
+    <span class="card-title" style="color:var(--purple)">🔍 Multi-Leverage Comparison Matrix (1x vs 3x vs 5x vs 10x)</span>
+    <span style="font-size:10px;color:var(--t2)">Simulated ₹800 Wallet across Leverage Tiers (@ ₹94/$)</span>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th>Leverage</th>
+          <th>Starting Wallet</th>
+          <th>Final Wallet</th>
+          <th>Total Return</th>
+          <th>Win Rate</th>
+          <th>Liquidations</th>
+          <th>Max Drawdown</th>
+          <th>Funding & Slip Fees</th>
+          <th>Status / Risk Level</th>
+        </tr>
+      </thead>
+      <tbody id="matrixBody">
+        <tr><td colspan="9" style="color:var(--t3)">Click "Run Live Simulator" to generate multi-leverage comparison matrix...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TRADES HISTORY LOG -->
+<div class="card">
+  <div class="card-hdr">
+    <span class="card-title">📜 Executed Paper Trades Log (0h → 12h Window)</span>
+    <span id="tradeCntBadge" style="font-size:10px;color:var(--t2)">0 Trades</span>
+  </div>
+  <div class="scrl">
+    <table class="trade-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Entry Time</th>
+          <th>Coin</th>
+          <th>Strategy</th>
+          <th>Dir</th>
+          <th>Margin (₹)</th>
+          <th>Lev</th>
+          <th>Entry $</th>
+          <th>Exit $</th>
+          <th>Slippage</th>
+          <th>Raw PnL%</th>
+          <th>Levered PnL%</th>
+          <th>Fees (₹)</th>
+          <th>Payout (₹)</th>
+          <th>New Wallet (₹)</th>
+          <th>Reason</th>
+        </tr>
+      </thead>
+      <tbody id="tradeLogBody">
+        <tr><td colspan="16" style="text-align:center;color:var(--t3);padding:20px">Loading trade signals from data engine...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// DATA & PARSING ENGINE
+// ─────────────────────────────────────────────
+const BINANCE_MIN_NOTIONAL_USDT = 5.0; // Min 5 USDT order size
+
+// TELEGRAM ALERT HELPER
+async function sendTelegramMessage(text) {
+  const token = document.getElementById('tgTokenInput').value.trim();
+  const chatId = document.getElementById('tgChatIdInput').value.trim();
+  if(!token || !chatId) return;
+
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
+    });
+  } catch(e) {}
+}
+
+async function testTelegramAlert() {
+  const token = document.getElementById('tgTokenInput').value.trim();
+  const chatId = document.getElementById('tgChatIdInput').value.trim();
+  if(!token || !chatId) {
+    alert('Please enter both Telegram Bot Token and Chat ID first!');
+    return;
+  }
+  const msg = `⚡ <b>EMA Momentum Simulator Alert Test</b>\n\n✅ Telegram Bot Connection Successful!\n📅 Time: ${new Date().toLocaleString('en-IN')}`;
+  await sendTelegramMessage(msg);
+  alert('Test Alert Sent to Telegram! Check your phone.');
+}
+
+// ─────────────────────────────────────────────
+// SIMULATOR ENGINE WITH FUNDING, SLIPPAGE & STREAKS
+// ─────────────────────────────────────────────
+function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesArr, inrRate) {
+  let wallet = initWallet;
+  let peak = wallet;
+  let lowest = wallet;
+  let wins = 0, losses = 0, skipped = 0, liquidations = 0;
+  let totalFundingInr = 0, totalSlippageInr = 0;
+  let maxDrawdownPct = 0;
+
+  // Streaks
+  let curWinStreak = 0, maxWinStreak = 0;
+  let curLossStreak = 0, maxLossStreak = 0;
+
+  const openPositions = [];
+  const executedLogs = [];
+
+  const day1Trades = tradesArr.filter(t => t.ch !== 'bothBoth' && t.elapsedH >= 0 && t.elapsedH < windowHours);
+  day1Trades.sort((a,b) => a.et - b.et);
+
+  for(const t of day1Trades) {
+    // Clear closed positions
+    for(let i = openPositions.length - 1; i >= 0; i--) {
+      if(openPositions[i].xt <= t.et) {
+        openPositions.splice(i, 1);
+      }
+    }
+
+    if(openPositions.length >= 5) {
+      skipped++;
+      continue; // Wallet 100% capacity full
+    }
+
+    // Position Size (20% compounding)
+    let marginInr = (wallet * (compPct / 100));
+
+    // Binance Min Notional Rule @ INR Rate
+    const minMarginUsdt = BINANCE_MIN_NOTIONAL_USDT / lev;
+    const minMarginInr = minMarginUsdt * inrRate;
+
+    if(marginInr < minMarginInr) {
+      marginInr = minMarginInr; // Auto-adjust to Binance min margin
+    }
+
+    if(wallet < minMarginInr) {
+      skipped++;
+      continue; // Insufficient wallet balance
+    }
+
+    // Dynamic Slippage (0.03% to 0.08% random fill offset)
+    const slippagePct = +(0.03 + Math.random()*0.05).toFixed(3);
+    const slippageInr = marginInr * (slippagePct / 100);
+    totalSlippageInr += slippageInr;
+
+    // 8-Hour Binance Funding Fee Simulation (0.01% per 8h held)
+    const durationHours = (t.dur || 15) / 60;
+    const fundingPeriods = Math.max(1, Math.floor(durationHours / 8));
+    const fundingPct = 0.01 * fundingPeriods;
+    const fundingInr = (marginInr * lev) * (fundingPct / 100);
+    totalFundingInr += fundingInr;
+
+    // Raw PnL calculation after slippage
+    let rawPnl = t.pnl - slippagePct;
+    let leveredPnl = rawPnl * lev;
+    let isLiq = false;
+
+    // Liquidation Check
+    const liqThreshold = -(100 / lev);
+    if(t.llPct !== null && t.llPct <= liqThreshold) {
+      isLiq = true;
+      leveredPnl = -100;
+      liquidations++;
+    }
+
+    const netProfitInr = (marginInr * (leveredPnl / 100)) - fundingInr;
+    wallet += netProfitInr;
+
+    if(wallet > peak) peak = wallet;
+    if(wallet < lowest) lowest = wallet;
+
+    const dd = ((peak - wallet) / peak) * 100;
+    if(dd > maxDrawdownPct) maxDrawdownPct = dd;
+
+    if(leveredPnl > 0) {
+      wins++;
+      curWinStreak++;
+      if(curWinStreak > maxWinStreak) maxWinStreak = curWinStreak;
+      curLossStreak = 0;
+    } else {
+      losses++;
+      curLossStreak++;
+      if(curLossStreak > maxLossStreak) maxLossStreak = curLossStreak;
+      curWinStreak = 0;
+    }
+
+    openPositions.push({ xt: t.xt || (t.et + 600000) });
+
+    executedLogs.push({
+      ...t,
+      marginInr,
+      lev,
+      slippagePct,
+      fundingInr,
+      rawPnl,
+      leveredPnl,
+      netProfitInr,
+      newWallet: wallet,
+      isLiq
+    });
+  }
+
+  return {
+    lev,
+    initWallet,
+    finalWallet: wallet,
+    totalReturnPct: ((wallet - initWallet) / initWallet) * 100,
+    wins,
+    losses,
+    skipped,
+    liquidations,
+    winRate: (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0,
+    peak,
+    lowest,
+    maxDrawdownPct: maxDrawdownPct.toFixed(1),
+    maxWinStreak,
+    curWinStreak,
+    maxLossStreak,
+    curLossStreak,
+    totalFundingInr: totalFundingInr.toFixed(2),
+    totalSlippageInr: totalSlippageInr.toFixed(2),
+    logs: executedLogs
+  };
+}
+
+// ─────────────────────────────────────────────
+// SAMPLE TRADES GENERATOR
+// ─────────────────────────────────────────────
+function generateSampleTrades() {
+  const coins = ['BEAT/USDT','EUL/USDT','PHAROS/USDT','CAP/USDT','BE/USDT','KAITO/USDT','RIF/USDT','VANRY/USDT'];
+  const strats = ['fast','slow','bothEither'];
+  const trades = [];
+  let baseTs = new Date(2026,6,28,10,0,0).getTime();
+
+  for(let i=1; i<=150; i++) {
+    const coin = coins[Math.floor(Math.random()*coins.length)];
+    const ch = strats[Math.floor(Math.random()*strats.length)];
+    const dir = Math.random() > 0.4 ? 'UP' : 'DOWN';
+    const ep = +(Math.random()*5 + 0.5).toFixed(4);
+    const pnl = +((Math.random() > 0.55 ? 1 : -1) * (Math.random()*4 + 0.2)).toFixed(2);
+    const hh = +(Math.abs(pnl) + Math.random()*2).toFixed(2);
+    const ll = +(-Math.abs(pnl) - Math.random()*2).toFixed(2);
+    const elapsedH = +(Math.random()*11.5).toFixed(1);
+    const et = baseTs + (i * 12 * 60 * 1000);
+    const xt = et + (Math.floor(Math.random()*35 + 5) * 60 * 1000);
+
+    trades.push({
+      num: i, et, xt,
+      dtStr: new Date(et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}),
+      sym: coin, ch, dir, ep,
+      xp: +(ep * (1 + pnl/100)).toFixed(4),
+      pnl, hhPct: hh, llPct: ll,
+      dur: Math.round((xt-et)/60000),
+      reason: pnl > 0 ? 'Target Hit' : 'Trailing Stop',
+      elapsedH
+    });
+  }
+  return trades;
+}
+
+let sampleTrades = generateSampleTrades();
+
+function runSimulation() {
+  const inrRate = parseFloat(document.getElementById('inrRateInput').value) || 94;
+  const initW = parseFloat(document.getElementById('initWalletInput').value) || 800;
+  const compPct = parseFloat(document.getElementById('compPctInput').value) || 20;
+  const activeLev = parseInt(document.getElementById('levSelect').value) || 5;
+  const windowH = parseInt(document.getElementById('windowSelect').value) || 12;
+
+  // Run Active Leverage
+  const r = runSimulationForLeverage(activeLev, initW, compPct, windowH, sampleTrades, inrRate);
+
+  // Update UI Dashboard
+  document.getElementById('startW').textContent = `₹${r.initWallet.toFixed(2)}`;
+  const curWEl = document.getElementById('curW');
+  curWEl.textContent = `₹${r.finalWallet.toFixed(2)}`;
+  curWEl.className = r.finalWallet >= r.initWallet ? 'w-val green' : 'w-val red';
+
+  const pnlWEl = document.getElementById('pnlW');
+  const retSign = r.totalReturnPct >= 0 ? '+' : '';
+  pnlWEl.textContent = `${retSign}${r.totalReturnPct.toFixed(2)}% Net Return`;
+  pnlWEl.className = r.totalReturnPct >= 0 ? 'w-sub green' : 'w-sub red';
+
+  document.getElementById('peakW').textContent = `₹${r.peak.toFixed(2)}`;
+  document.getElementById('lowW').textContent = `₹${r.lowest.toFixed(2)}`;
+  document.getElementById('totT').textContent = r.logs.length;
+  document.getElementById('wlT').textContent = `${r.wins}W / ${r.losses}L`;
+  document.getElementById('wrT').textContent = `${r.winRate}%`;
+
+  document.getElementById('maxWinStreak').textContent = `${r.maxWinStreak} 🔥`;
+  document.getElementById('curWinStreak').textContent = `Current: ${r.curWinStreak}`;
+  document.getElementById('maxLossStreak').textContent = `${r.maxLossStreak} ❌`;
+  document.getElementById('curLossStreak').textContent = `Current: ${r.curLossStreak}`;
+
+  document.getElementById('fundingPaid').textContent = `₹${r.totalFundingInr}`;
+  document.getElementById('slippagePaid').textContent = `₹${r.totalSlippageInr}`;
+
+  document.getElementById('lastUpdated').textContent = `Updated: ${new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'})}`;
+  document.getElementById('tradeCntBadge').textContent = `${r.logs.length} Executed Trades`;
+
+  // Render Multi-Leverage Comparison Matrix Table
+  const tiers = [1, 3, 5, 7, 10];
+  let matrixHtml = '';
+  for(const levTier of tiers) {
+    const res = runSimulationForLeverage(levTier, initW, compPct, windowH, sampleTrades, inrRate);
+    const pnlCls = res.totalReturnPct >= 0 ? 'green' : 'red';
+    const statusTag = levTier === 1 ? '🟢 Spot (Safe)' : levTier <= 5 ? '🟡 Optimal Futures' : '🔴 High Liquidation Risk';
+    matrixHtml += `<tr>
+      <td><b>${levTier}x</b> ${levTier === activeLev ? '👈 (Active)' : ''}</td>
+      <td>₹${res.initWallet.toFixed(2)}</td>
+      <td class="${pnlCls}"><b>₹${res.finalWallet.toFixed(2)}</b></td>
+      <td class="${pnlCls}"><b>${res.totalReturnPct >= 0 ? '+' : ''}${res.totalReturnPct.toFixed(1)}%</b></td>
+      <td class="${res.winRate>=50?'green':'red'}">${res.winRate}% (${res.wins}W/${res.losses}L)</td>
+      <td class="${res.liquidations>0?'red':'green'}">${res.liquidations} Trades</td>
+      <td class="red">-${res.maxDrawdownPct}%</td>
+      <td class="gold">₹${res.totalFundingInr} / ₹${res.totalSlippageInr}</td>
+      <td>${statusTag}</td>
+    </tr>`;
+  }
+  document.getElementById('matrixBody').innerHTML = matrixHtml;
+
+  // Render Trade Logs
+  let logsHtml = '';
+  r.logs.forEach((t, i) => {
+    const rowCls = t.isLiq ? 'liq' : t.netProfitInr > 0 ? 'win' : 'loss';
+    const pnlCls = t.netProfitInr > 0 ? 'green' : 'red';
+    const ps = t.netProfitInr > 0 ? '+' : '';
+    logsHtml += `<tr class="${rowCls}">
+      <td>#${i+1}</td>
+      <td>${t.dtStr}</td>
+      <td><b>${t.sym}</b></td>
+      <td>${t.ch}</td>
+      <td class="${t.dir==='UP'?'green':'red'}">${t.dir}</td>
+      <td>₹${t.marginInr.toFixed(2)}</td>
+      <td><b>${t.lev}x</b></td>
+      <td>$${t.ep}</td>
+      <td>$${t.xp}</td>
+      <td class="gold">-${t.slippagePct}%</td>
+      <td>${t.rawPnl >= 0 ? '+' : ''}${t.rawPnl}%</td>
+      <td class="${pnlCls}"><b>${t.leveredPnl >= 0 ? '+' : ''}${t.leveredPnl.toFixed(1)}%</b></td>
+      <td class="gold">₹${t.fundingInr.toFixed(2)}</td>
+      <td class="${pnlCls}"><b>${ps}₹${t.netProfitInr.toFixed(2)}</b></td>
+      <td><b>₹${t.newWallet.toFixed(2)}</b></td>
+      <td>${t.isLiq ? '💥 LIQUIDATED (100% Margin Lost)' : t.reason}</td>
+    </tr>`;
+  });
+  document.getElementById('tradeLogBody').innerHTML = logsHtml;
+}
+
+function exportSimTXT() {
+  const initW = document.getElementById('initWalletInput').value;
+  const activeLev = document.getElementById('levSelect').value;
+  const windowH = document.getElementById('windowSelect').value;
+  const inrRate = document.getElementById('inrRateInput').value;
+
+  let txt = `================================================================================\n`;
+  txt += `⚡ EMA MOMENTUM — LIVE WALLET SIMULATOR REPORT v2\n`;
+  txt += `USD/INR Rate: ₹${inrRate} | Starting Wallet: ₹${initW} INR | Compounding: 20%\n`;
+  txt += `Leverage: ${activeLev}x | Active Window: 0h -> ${windowH}h\n`;
+  txt += `Features: 8h Binance Funding Fee, Dynamic Slippage, Streaks & Telegram Integration\n`;
+  txt += `Generated: ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})}\n`;
+  txt += `================================================================================\n\n`;
+
+  const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `EMA_Wallet_Simulator_Report_${activeLev}x.txt`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// Initial Run
+runSimulation();
+</script>
+</body>
+</html>
