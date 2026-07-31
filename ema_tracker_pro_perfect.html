@@ -230,10 +230,13 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
         <option value="ALL">📚 All-Time History (All Dates)</option>
         <option value="TODAY">📅 Today's Date</option>
       </select>
-      <button class="btn btn-grn btn-sm" onclick="downloadDay1PDF()" style="flex:1;min-width:110px;padding:7px 10px;font-size:11px;font-weight:700" title="Download ONLY Day 1 Trades (First 24 Hours)">🥇 Day 1 PDF</button>
-      <button class="btn btn-blu btn-sm" onclick="downloadDailyPDF()" style="flex:1;min-width:110px;padding:7px 10px;font-size:11px;font-weight:700">📅 Selected PDF</button>
-      <button class="btn btn-grn btn-sm" onclick="downloadFullPDF()" style="flex:1;min-width:110px;padding:7px 10px;font-size:11px;font-weight:700">📚 All-Time PDF</button>
-      <button class="btn btn-or btn-sm" onclick="downloadTXTReport()" style="flex:1;min-width:110px;padding:7px 10px;font-size:11px;font-weight:700" title="Download 100% of all signals as a TXT file">📄 Download TXT</button>
+      <button class="btn btn-grn btn-sm" onclick="downloadDay1PDF()" style="flex:1;min-width:100px;padding:7px 10px;font-size:11px;font-weight:700" title="Download Day 1 Trades (First 24h per Session) as PDF">🥇 Day 1 PDF</button>
+      <button class="btn btn-grn btn-sm" onclick="downloadDay1TXT()" style="flex:1;min-width:100px;padding:7px 10px;font-size:11px;font-weight:700" title="Download Day 1 Trades (First 24h per Session) as TXT">🥇 Day 1 TXT</button>
+      <button class="btn btn-sec btn-sm" onclick="downloadDay1Blocks6HPDF()" style="flex:1;min-width:120px;padding:7px 10px;font-size:11px;font-weight:700" title="Print / Save PDF Day 1 6-Hour Block Analysis Report">📊 6H Blocks PDF</button>
+      <button class="btn btn-sec btn-sm" onclick="downloadDay1Blocks6HTXT()" style="flex:1;min-width:120px;padding:7px 10px;font-size:11px;font-weight:700" title="Download Day 1 6-Hour Block Analysis Report as TXT">📊 6H Blocks TXT</button>
+      <button class="btn btn-blu btn-sm" onclick="downloadDailyPDF()" style="flex:1;min-width:100px;padding:7px 10px;font-size:11px;font-weight:700">📅 Selected PDF</button>
+      <button class="btn btn-grn btn-sm" onclick="downloadFullPDF()" style="flex:1;min-width:100px;padding:7px 10px;font-size:11px;font-weight:700">📚 All-Time PDF</button>
+      <button class="btn btn-or btn-sm" onclick="downloadTXTReport()" style="flex:1;min-width:100px;padding:7px 10px;font-size:11px;font-weight:700" title="Download 100% of all signals as a TXT file">📄 Download TXT</button>
     </div>
   </div>
 
@@ -270,7 +273,10 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
           <option value="ALL">📚 All-Time History (All Dates)</option>
           <option value="TODAY">📅 Today's Date</option>
         </select>
-        <button class="btn btn-grn btn-sm" onclick="downloadDay1PDF()" title="Download ONLY Day 1 Trades (First 24 Hours)">🥇 Day 1 PDF</button>
+        <button class="btn btn-grn btn-sm" onclick="downloadDay1PDF()" title="Download Day 1 Trades (First 24h per Session) as PDF">🥇 Day 1 PDF</button>
+        <button class="btn btn-grn btn-sm" onclick="downloadDay1TXT()" title="Download Day 1 Trades (First 24h per Session) as TXT">🥇 Day 1 TXT</button>
+        <button class="btn btn-sec btn-sm" onclick="downloadDay1Blocks6HPDF()" title="Print / Save PDF Day 1 6-Hour Block Analysis Report">📊 6H Blocks PDF</button>
+        <button class="btn btn-sec btn-sm" onclick="downloadDay1Blocks6HTXT()" title="Download Day 1 6-Hour Block Analysis Report as TXT">📊 6H Blocks TXT</button>
         <button class="btn btn-blu btn-sm" onclick="downloadDailyPDF()" title="Download PDF for selected date">📅 Selected PDF</button>
         <button class="btn btn-grn btn-sm" onclick="downloadFullPDF()" title="Download complete all-time history PDF">📚 All-Time PDF</button>
         <button class="btn btn-or btn-sm" onclick="downloadTXTReport()" title="Download complete 100% signals as a TXT file">📄 TXT</button>
@@ -1292,19 +1298,464 @@ function getCoinExpiryInfo(c){
   };
 }
 
-function downloadDay1PDF(){
-  let master = getAllSignalsMaster();
-  // Day 1 Trades = signals occurring within first 24 hours of coin gainer entry
-  let day1Trades = master.filter(t => {
-    const cObj = coins[t.sym];
-    const gObj = gainers.find(g => g.sym === t.sym);
-    const startTs = (cObj && cObj.et) || (gObj && gObj.ts) || t.et;
-    if(!startTs || !t.et) return true;
-    const elapsed = t.et - startTs;
-    return elapsed >= 0 && elapsed <= 24 * 3600 * 1000;
-  });
+// ─────────────────────────────────────────────
+// SESSION-BASED DAY 1 HELPER
+// Coins can re-enter gainer list multiple times.
+// We use 4-hour gap between consecutive trades per coin
+// to detect new "gainer sessions". Each session gets its
+// own 24-hour Day 1 window.
+// ─────────────────────────────────────────────
+function getDay1TradesSessionBased(masterTrades){
+  const GAP_MS = 4 * 60 * 60 * 1000; // 4h gap = new session
+  const WINDOW_MS = 24 * 60 * 60 * 1000;
 
-  generateChronologicalPDF('ALL', "Day 1 Only Trades Report (First 24 Hours Post Gainer Entry)", day1Trades);
+  // Group trades by coin symbol
+  const coinGroups = {};
+  for(const t of masterTrades){
+    if(!t.sym || !t.et) continue;
+    if(!coinGroups[t.sym]) coinGroups[t.sym] = [];
+    coinGroups[t.sym].push(t);
+  }
+
+  const day1 = [];
+  for(const [sym, arr] of Object.entries(coinGroups)){
+    // Sort by entry time ascending
+    arr.sort((a,b) => (a.et||0) - (b.et||0));
+    // Assign session start to each trade
+    let sessionStart = arr[0].et;
+    arr[0]._sessionStart = sessionStart;
+    for(let i = 1; i < arr.length; i++){
+      if((arr[i].et - arr[i-1].et) > GAP_MS){
+        sessionStart = arr[i].et; // new gainer session
+      }
+      arr[i]._sessionStart = sessionStart;
+    }
+    // Keep only trades within 24h of their session start
+    for(const t of arr){
+      const elapsed = t.et - t._sessionStart;
+      if(elapsed >= 0 && elapsed < WINDOW_MS){
+        t._elapsedH = elapsed / (1000 * 60 * 60);
+        day1.push(t);
+      }
+    }
+  }
+  // Sort result newest first for display
+  day1.sort((a,b) => (b.et||0) - (a.et||0));
+  return day1;
+}
+
+function downloadDay1PDF(){
+  const master = getAllSignalsMaster();
+  const filtered = master.filter(t => t.ch !== 'bothBoth');
+  const day1Trades = getDay1TradesSessionBased(filtered);
+
+  if(!day1Trades.length){ toast('No Day 1 trades found!'); return; }
+
+  generateChronologicalPDF('ALL', "Day 1 Only Trades Report (Session-Based 24h Window)", day1Trades);
+}
+
+function downloadDay1TXT(){
+  const master = getAllSignalsMaster();
+  // Exclude bothBoth channel
+  const filtered = master.filter(t => t.ch !== 'bothBoth');
+  const day1Trades = getDay1TradesSessionBased(filtered);
+
+  if(!day1Trades.length){ toast('No Day 1 trades found!'); return; }
+
+  const now = new Date().toLocaleString();
+  const wins = day1Trades.filter(t => t.pnl > 0).length;
+  const losses = day1Trades.length - wins;
+  const winRate = Math.round(wins / day1Trades.length * 100);
+  const totalPnl = r2(day1Trades.reduce((s,t) => s + (t.pnl||0), 0));
+  const avgPnl = r2(totalPnl / day1Trades.length);
+  const avgHH = r2(day1Trades.reduce((s,t) => s + (t.hhPct||0), 0) / day1Trades.length);
+  const avgLL = r2(day1Trades.reduce((s,t) => s + (t.llPct||0), 0) / day1Trades.length);
+
+  let txt = `================================================================================\n`;
+  txt += `🥇 EMA MOMENTUM TRACKER — DAY 1 TRADES REPORT\n`;
+  txt += `Session-Based: Each coin re-entry after 4h gap = new Day 1 (24h window)\n`;
+  txt += `BothBoth strategy excluded from analysis\n`;
+  txt += `Generated: ${now}\n`;
+  txt += `================================================================================\n\n`;
+  txt += `📊 DAY 1 SUMMARY STATS:\n`;
+  txt += `- Total Day 1 Trades: ${day1Trades.length}\n`;
+  txt += `- Win Rate: ${winRate}% (${wins} Wins / ${losses} Losses)\n`;
+  txt += `- Total P&L: ${totalPnl >= 0 ? '+' : ''}${totalPnl}%\n`;
+  txt += `- Avg P&L per Trade: ${avgPnl >= 0 ? '+' : ''}${avgPnl}%\n`;
+  txt += `- Avg Max Gain (HH): +${avgHH}%\n`;
+  txt += `- Avg Max Drawdown (LL): ${avgLL}%\n\n`;
+  txt += `================================================================================\n`;
+  txt += `#    | ENTRY TIME   | EXIT TIME    | COIN      | CHAN        | DIR  | ENTRY $   | EXIT $    | PNL %    | HH %    | LL %    | DUR   | EXIT REASON         | ELAPSED\n`;
+  txt += `================================================================================\n`;
+
+  // Sort oldest-first for display
+  const sorted = [...day1Trades].sort((a,b) => (a.et||0) - (b.et||0));
+  let idx = 1;
+  for(const t of sorted){
+    const num = String(idx++).padStart(4, ' ');
+    const et = fmtDate(t.et).padEnd(13, ' ');
+    const xt = (t.isOpen ? '— (Open)' : fmtDate(t.xt)).padEnd(13, ' ');
+    const sym = (t.sym||'').replace('USDT','/USDT').padEnd(10, ' ');
+    const ch = (t.ch||'').padEnd(12, ' ');
+    const dir = (t.dir||'UP').padEnd(5, ' ');
+    const ep = p4(t.ep).padEnd(10, ' ');
+    const xp = p4(t.xp||0).padEnd(10, ' ');
+    const pnlV = t.pnl !== undefined && t.pnl !== null && !isNaN(t.pnl) ? ((t.pnl>=0?'+':'')+t.pnl+'%') : 'undefined%';
+    const pnl = pnlV.padEnd(9, ' ');
+    const hh = ('+'+( t.hhPct||0)+'%').padEnd(8, ' ');
+    const ll = ((t.llPct||0)+'%').padEnd(8, ' ');
+    const dur = fmtDur(t.dur||0).padEnd(6, ' ');
+    const reason = (t.isOpen ? 'Open (Live)' : (t.reason||'—')).padEnd(20, ' ');
+    const elapsed = (t._elapsedH !== undefined ? t._elapsedH.toFixed(1)+'h after gainer' : '—');
+    txt += `#${num} | ${et} | ${xt} | ${sym} | ${ch} | ${dir} | ${ep} | ${xp} | ${pnl} | ${hh} | ${ll} | ${dur} | ${reason} | ${elapsed}\n`;
+  }
+
+  txt += `================================================================================\n`;
+  txt += `END OF DAY 1 REPORT — ${day1Trades.length} TRADES TOTAL\n`;
+
+  const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `EMA_Day1_Trades_${new Date().toLocaleDateString('en-GB').replace(/\//g,'-')}.txt`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast(`✅ Day 1 TXT exported: ${day1Trades.length} trades!`);
+}
+
+// ─────────────────────────────────────────────
+// DAY 1 — 6-HOUR BLOCKS TXT REPORT
+// ─────────────────────────────────────────────
+function downloadDay1Blocks6H(){
+  const master = getAllSignalsMaster();
+  const filtered = master.filter(t => t.ch !== 'bothBoth');
+  const day1Trades = getDay1TradesSessionBased(filtered);
+
+  if(!day1Trades.length){ toast('No Day 1 trades found!'); return; }
+
+  const now = new Date().toLocaleString();
+  const BLOCKS = [
+    { label:'0h → 6h',   emoji:'🟢', min:0,  max:6  },
+    { label:'6h → 12h',  emoji:'🟡', min:6,  max:12 },
+    { label:'12h → 18h', emoji:'🟣', min:12, max:18 },
+    { label:'18h → 24h', emoji:'🔴', min:18, max:24 },
+  ];
+
+  // Partition
+  const blockTrades = BLOCKS.map(b =>
+    day1Trades.filter(t => t._elapsedH >= b.min && t._elapsedH < b.max)
+              .sort((a,b2) => (a.et||0) - (b2.et||0))
+  );
+
+  function bStats(arr){
+    if(!arr.length) return {n:0,w:0,l:0,wr:0,total:0,avg:0,best:0,worst:0,avgHH:0,avgLL:0};
+    const w = arr.filter(t=>t.pnl>0);
+    const l = arr.filter(t=>t.pnl<=0);
+    const total = r2(arr.reduce((s,t)=>s+(t.pnl||0),0));
+    const hhArr = arr.filter(t=>t.hhPct!==undefined);
+    const llArr = arr.filter(t=>t.llPct!==undefined);
+    return {
+      n:arr.length, w:w.length, l:l.length,
+      wr:Math.round(w.length/arr.length*100),
+      total, avg:r2(total/arr.length),
+      best: w.length ? Math.max(...w.map(t=>t.pnl)) : 0,
+      worst: l.length ? Math.min(...l.map(t=>t.pnl)) : 0,
+      avgHH: hhArr.length ? r2(hhArr.reduce((s,t)=>s+(t.hhPct||0),0)/hhArr.length) : 0,
+      avgLL: llArr.length ? r2(llArr.reduce((s,t)=>s+(t.llPct||0),0)/llArr.length) : 0
+    };
+  }
+
+  function maxConsec(arr){
+    let mx=0,cur=0,mxSum=0,curSum=0;
+    for(const t of arr){
+      if((t.pnl||0)<=0){cur++;curSum+=t.pnl||0;if(cur>mx){mx=cur;mxSum=curSum;}}
+      else{cur=0;curSum=0;}
+    }
+    return {mx, sum:r2(mxSum)};
+  }
+
+  const overallStats = bStats(day1Trades);
+  const allConsec = maxConsec([...day1Trades].sort((a,b)=>(a.et||0)-(b.et||0)));
+
+  const SEP = '='.repeat(120);
+  const sep2 = '-'.repeat(120);
+
+  let txt = `${SEP}\n`;
+  txt += `📊 EMA MOMENTUM TRACKER — DAY 1: 6-HOUR BLOCK ANALYSIS REPORT\n`;
+  txt += `Session-Based Filter: Each coin re-entry (4h+ gap) = New Gainer Session with its own 24h window\n`;
+  txt += `BothBoth strategy excluded | Only closed trades with defined PNL included\n`;
+  txt += `Generated: ${now}\n`;
+  txt += `${SEP}\n\n`;
+
+  // Overall Summary
+  txt += `╔══════════════════════════════════════════════════════╗\n`;
+  txt += `║        OVERALL DAY 1 SUMMARY (All 4 Blocks)         ║\n`;
+  txt += `╚══════════════════════════════════════════════════════╝\n`;
+  txt += `  Total Day 1 Trades  : ${overallStats.n}\n`;
+  txt += `  Win Rate            : ${overallStats.wr}% (${overallStats.w} Wins / ${overallStats.l} Losses)\n`;
+  txt += `  Total P&L           : ${overallStats.total >= 0 ? '+' : ''}${overallStats.total}%\n`;
+  txt += `  Avg P&L per Trade   : ${overallStats.avg >= 0 ? '+' : ''}${overallStats.avg}%\n`;
+  txt += `  Best Trade          : +${overallStats.best}%\n`;
+  txt += `  Worst Trade         : ${overallStats.worst}%\n`;
+  txt += `  Avg Max Gain (HH)   : +${overallStats.avgHH}%\n`;
+  txt += `  Avg Max Draw (LL)   : ${overallStats.avgLL}%\n`;
+  txt += `  Max Consec. Losses  : ${allConsec.mx} trades (Total: ${allConsec.sum}%)\n`;
+  txt += `\n`;
+
+  // Block Comparison Table
+  txt += `╔══════════════════════════════════════════════════════════════════════════════════════════════╗\n`;
+  txt += `║                        BLOCK-BY-BLOCK COMPARISON                                           ║\n`;
+  txt += `╚══════════════════════════════════════════════════════════════════════════════════════════════╝\n`;
+  txt += `  ${'BLOCK'.padEnd(6)} | ${'RANGE'.padEnd(12)} | ${'TRADES'.padEnd(6)} | ${'WIN%'.padEnd(5)} | ${'W/L'.padEnd(8)} | ${'TOTAL P&L'.padEnd(11)} | ${'AVG P&L'.padEnd(9)} | ${'BEST'.padEnd(9)} | ${'WORST'.padEnd(9)} | ${'AVG HH'.padEnd(8)} | ${'AVG LL'.padEnd(8)} | MAX CONSEC\n`;
+  txt += `  ${'-'.repeat(115)}\n`;
+  for(let i=0;i<4;i++){
+    const s=bStats(blockTrades[i]); const c=maxConsec(blockTrades[i]);
+    txt += `  ${'B'+(i+1)+'  '+BLOCKS[i].emoji}  | ${BLOCKS[i].label.padEnd(12)} | ${String(s.n).padEnd(6)} | ${(s.wr+'%').padEnd(5)} | ${(s.w+'/'+s.l).padEnd(8)} | ${((s.total>=0?'+':'')+s.total+'%').padEnd(11)} | ${((s.avg>=0?'+':'')+s.avg+'%').padEnd(9)} | ${('+'+s.best+'%').padEnd(9)} | ${(s.worst+'%').padEnd(9)} | ${('+'+s.avgHH+'%').padEnd(8)} | ${(s.avgLL+'%').padEnd(8)} | ${c.mx} trades (${c.sum}%)\n`;
+  }
+  txt += `\n`;
+
+  // Per Block Detail
+  for(let i=0;i<4;i++){
+    const b=BLOCKS[i], arr=blockTrades[i];
+    const s=bStats(arr), c=maxConsec(arr);
+    txt += `${SEP}\n`;
+    txt += `${b.emoji} BLOCK ${i+1}: ${b.label} — ${arr.length} Trades\n`;
+    txt += `${SEP}\n`;
+    txt += `  Win Rate         : ${s.wr}% (${s.w} Wins / ${s.l} Losses)\n`;
+    txt += `  Total P&L        : ${s.total >= 0 ? '+' : ''}${s.total}%\n`;
+    txt += `  Avg P&L/Trade    : ${s.avg >= 0 ? '+' : ''}${s.avg}%\n`;
+    txt += `  Best Trade       : +${s.best}%\n`;
+    txt += `  Worst Trade      : ${s.worst}%\n`;
+    txt += `  Avg Max Gain(HH) : +${s.avgHH}%\n`;
+    txt += `  Avg Max Draw(LL) : ${s.avgLL}%\n`;
+    txt += `  Max Consec Loss  : ${c.mx} trades (Total loss: ${c.sum}%)\n\n`;
+
+    // Strategy Breakdown
+    const stratMap = {};
+    for(const t of arr){ if(!stratMap[t.ch]) stratMap[t.ch]={n:0,w:0,pnl:0}; stratMap[t.ch].n++; if(t.pnl>0)stratMap[t.ch].w++; stratMap[t.ch].pnl+=t.pnl||0; }
+    txt += `  Strategy Breakdown:\n`;
+    for(const [ch,d] of Object.entries(stratMap)){
+      const wr=d.n?Math.round(d.w/d.n*100):0;
+      txt += `    ${ch.padEnd(14)} : ${d.n} trades | WR=${wr}% | P&L=${(d.pnl>=0?'+':'')+r2(d.pnl)}%\n`;
+    }
+    txt += `\n`;
+
+    if(!arr.length){ txt += `  No trades in this block.\n\n`; continue; }
+
+    txt += `  ${sep2}\n`;
+    txt += `  ${'#'.padEnd(5)} | ${'ENTRY TIME'.padEnd(15)} | ${'COIN'.padEnd(12)} | ${'CHAN'.padEnd(12)} | ${'DIR'.padEnd(5)} | ${'ENTRY $'.padEnd(10)} | ${'EXIT $'.padEnd(10)} | ${'PNL%'.padEnd(9)} | ${'HH%'.padEnd(8)} | ${'LL%'.padEnd(8)} | ${'DUR'.padEnd(8)} | ${'EXIT REASON'.padEnd(20)} | ELAPSED\n`;
+    txt += `  ${sep2}\n`;
+    let idx2=1;
+    for(const t of arr){
+      const num=String(idx2++).padStart(4,' ');
+      const et=fmtDate(t.et).padEnd(15,' ');
+      const sym=(t.sym||'').replace('USDT','/USDT').padEnd(12,' ');
+      const ch=(t.ch||'').padEnd(12,' ');
+      const dir=(t.dir||'UP').padEnd(5,' ');
+      const ep=p4(t.ep).padEnd(10,' ');
+      const xp=p4(t.xp||0).padEnd(10,' ');
+      const pnlV=t.pnl!==undefined&&!isNaN(t.pnl)?((t.pnl>=0?'+':'')+t.pnl+'%'):'open';
+      const pnl=pnlV.padEnd(9,' ');
+      const hh=('+'+( t.hhPct||0)+'%').padEnd(8,' ');
+      const ll=((t.llPct||0)+'%').padEnd(8,' ');
+      const dur=fmtDur(t.dur||0).padEnd(8,' ');
+      const reason=(t.isOpen?'Open (Live)':(t.reason||'—')).padEnd(20,' ');
+      const elapsed=t._elapsedH!==undefined?t._elapsedH.toFixed(1)+'h':'—';
+      txt += `  #${num} | ${et} | ${sym} | ${ch} | ${dir} | ${ep} | ${xp} | ${pnl} | ${hh} | ${ll} | ${dur} | ${reason} | ${elapsed}\n`;
+    }
+    txt += `\n`;
+  }
+
+  txt += `${SEP}\n`;
+  txt += `END OF DAY 1 — 6-HOUR BLOCK REPORT | ${day1Trades.length} Total Day 1 Trades\n`;
+
+  const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `EMA_Day1_6HBlocks_${new Date().toLocaleDateString('en-GB').replace(/\//g,'-')}.txt`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast(`✅ Day 1 6H-Blocks TXT exported: ${day1Trades.length} trades in 4 blocks!`);
+}
+
+const downloadDay1Blocks6HTXT = downloadDay1Blocks6H;
+
+function downloadDay1Blocks6HPDF(){
+  const master = getAllSignalsMaster();
+  const filtered = master.filter(t => t.ch !== 'bothBoth');
+  const day1Trades = getDay1TradesSessionBased(filtered);
+
+  if(!day1Trades.length){ toast('No Day 1 trades found!'); return; }
+
+  const now = new Date().toLocaleString();
+  const BLOCKS = [
+    { label:'0h → 6h',   emoji:'🟢', color:'#00e676', min:0,  max:6  },
+    { label:'6h → 12h',  emoji:'🟡', color:'#ffeb3b', min:6,  max:12 },
+    { label:'12h → 18h', emoji:'🟣', color:'#ce93d8', min:12, max:18 },
+    { label:'18h → 24h', emoji:'🔴', color:'#f44336', min:18, max:24 },
+  ];
+
+  const blockTrades = BLOCKS.map(b =>
+    day1Trades.filter(t => t._elapsedH >= b.min && t._elapsedH < b.max)
+              .sort((a,b2) => (a.et||0) - (b2.et||0))
+  );
+
+  function bStats(arr){
+    if(!arr.length) return {n:0,w:0,l:0,wr:0,total:0,avg:0,best:0,worst:0,avgHH:0,avgLL:0};
+    const w = arr.filter(t=>t.pnl>0);
+    const l = arr.filter(t=>t.pnl<=0);
+    const total = r2(arr.reduce((s,t)=>s+(t.pnl||0),0));
+    const hhArr = arr.filter(t=>t.hhPct!==undefined);
+    const llArr = arr.filter(t=>t.llPct!==undefined);
+    return {
+      n:arr.length, w:w.length, l:l.length,
+      wr:Math.round(w.length/arr.length*100),
+      total, avg:r2(total/arr.length),
+      best: w.length ? Math.max(...w.map(t=>t.pnl)) : 0,
+      worst: l.length ? Math.min(...l.map(t=>t.pnl)) : 0,
+      avgHH: hhArr.length ? r2(hhArr.reduce((s,t)=>s+(t.hhPct||0),0)/hhArr.length) : 0,
+      avgLL: llArr.length ? r2(llArr.reduce((s,t)=>s+(t.llPct||0),0)/llArr.length) : 0
+    };
+  }
+
+  function maxConsec(arr){
+    let mx=0,cur=0,mxSum=0,curSum=0;
+    for(const t of arr){
+      if((t.pnl||0)<=0){cur++;curSum+=t.pnl||0;if(cur>mx){mx=cur;mxSum=curSum;}}
+      else{cur=0;curSum=0;}
+    }
+    return {mx, sum:r2(mxSum)};
+  }
+
+  const overallStats = bStats(day1Trades);
+  const allConsec = maxConsec([...day1Trades].sort((a,b)=>(a.et||0)-(b.et||0)));
+
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Day 1 6-Hour Block Report - ${now}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:#0a0a0f;color:#e0e0e0;padding:20px}
+    .hdr{text-align:center;padding:30px 20px;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);border-radius:16px;margin-bottom:20px;border:1px solid #00e67620}
+    .hdr h1{font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#00e676,#00bcd4,#7c4dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+    .hdr p{color:#888;font-size:.85rem}
+    .pbtn{position:fixed;top:15px;right:15px;padding:10px 20px;background:linear-gradient(135deg,#00e676,#00bcd4);color:#000;font-weight:700;border:none;border-radius:20px;cursor:pointer;z-index:999;box-shadow:0 4px 15px rgba(0,230,118,0.3)}
+    .summary{background:#16213e;border:1px solid #00e67630;border-radius:14px;padding:20px;margin-bottom:20px}
+    .ogrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:12px}
+    .oc{background:rgba(255,255,255,0.05);border-radius:10px;padding:10px;text-align:center}
+    .ol{font-size:.65rem;color:#888;text-transform:uppercase;margin-bottom:4px}
+    .ov{font-size:1.1rem;font-weight:700;font-family:'JetBrains Mono',monospace}
+    .ctbl{width:100%;border-collapse:collapse;margin-top:12px;font-size:.78rem;font-family:'JetBrains Mono',monospace}
+    .ctbl th{background:rgba(255,255,255,0.1);color:#aaa;padding:8px;text-align:center;font-size:.68rem;text-transform:uppercase}
+    .ctbl td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:center}
+    .block{border-radius:14px;padding:20px;margin-bottom:20px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08)}
+    .bhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08)}
+    .tt{width:100%;border-collapse:collapse;font-size:.7rem;font-family:'JetBrains Mono',monospace;margin-top:10px}
+    .tt th{background:#111122;color:#888;padding:6px 8px;text-align:left;font-size:.62rem;text-transform:uppercase}
+    .tt td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.04);white-space:nowrap}
+    .win{color:#00e676}.loss{color:#f44336}
+    @media print{.pbtn{display:none}body{background:#fff;color:#000}}
+  </style></head><body>
+  <button class="pbtn" onclick="window.print()">🖨️ Print / Save PDF</button>
+  <div class="hdr">
+    <h1>⚡ EMA Momentum Tracker — Day 1 6-Hour Block Report</h1>
+    <p>Generated: ${now} • Total Day 1 Trades: ${day1Trades.length} (Session-Based 24h Window)</p>
+  </div>
+  <div class="summary">
+    <h2 style="color:#00e676;font-size:1.1rem">📈 Overall Day 1 Summary</h2>
+    <div class="ogrid">
+      <div class="oc"><div class="ol">Total Trades</div><div class="ov">${overallStats.n}</div></div>
+      <div class="oc"><div class="ol">Win Rate</div><div class="ov ${overallStats.wr>=50?'win':'loss'}">${overallStats.wr}%</div></div>
+      <div class="oc"><div class="ol">Wins / Losses</div><div class="ov">${overallStats.w} / ${overallStats.l}</div></div>
+      <div class="oc"><div class="ol">Total P&L</div><div class="ov ${overallStats.total>=0?'win':'loss'}">${overallStats.total>=0?'+':''}${overallStats.total}%</div></div>
+      <div class="oc"><div class="ol">Avg P&L</div><div class="ov ${overallStats.avg>=0?'win':'loss'}">${overallStats.avg>=0?'+':''}${overallStats.avg}%</div></div>
+      <div class="oc"><div class="ol">Best Trade</div><div class="ov win">+${overallStats.best}%</div></div>
+      <div class="oc"><div class="ol">Worst Trade</div><div class="ov loss">${overallStats.worst}%</div></div>
+      <div class="oc"><div class="ol">Max Consec Loss</div><div class="ov loss">${allConsec.mx}</div></div>
+    </div>
+  </div>
+  <div class="summary" style="border-color:#7c4dff30">
+    <h2 style="color:#7c4dff;font-size:1.1rem;margin-bottom:10px">🔍 Block-by-Block Comparison</h2>
+    <div style="overflow-x:auto">
+    <table class="ctbl">
+      <thead><tr><th>Block</th><th>Range</th><th>Trades</th><th>Win%</th><th>W/L</th><th>Total P&L</th><th>Avg P&L</th><th>Best</th><th>Worst</th><th>Max Consec</th></tr></thead>
+      <tbody>`;
+
+  for(let i=0;i<4;i++){
+    const s=bStats(blockTrades[i]), c=maxConsec(blockTrades[i]);
+    html += `<tr>
+      <td style="color:${BLOCKS[i].color};font-weight:bold">${BLOCKS[i].emoji} Block ${i+1}</td>
+      <td style="color:${BLOCKS[i].color}">${BLOCKS[i].label}</td>
+      <td>${s.n}</td>
+      <td class="${s.wr>=50?'win':'loss'}">${s.wr}%</td>
+      <td>${s.w}/${s.l}</td>
+      <td class="${s.total>=0?'win':'loss'}">${s.total>=0?'+':''}${s.total}%</td>
+      <td class="${s.avg>=0?'win':'loss'}">${s.avg>=0?'+':''}${s.avg}%</td>
+      <td class="win">+${s.best}%</td>
+      <td class="loss">${s.worst}%</td>
+      <td class="loss">${c.mx} (${c.sum}%)</td>
+    </tr>`;
+  }
+  html += `</tbody></table></div></div>`;
+
+  for(let i=0;i<4;i++){
+    const b=BLOCKS[i], arr=blockTrades[i];
+    const s=bStats(arr), c=maxConsec(arr);
+    html += `<div class="block" style="border-left:4px solid ${b.color}">
+      <div class="bhead">
+        <h2 style="color:${b.color};font-size:1.2rem">${b.emoji} Block ${i+1}: ${b.label} (${s.n} Trades)</h2>
+        <span style="font-size:0.85rem;color:${b.color};font-weight:bold">${s.wr}% WR | Total P&L: ${s.total>=0?'+':''}${s.total}%</span>
+      </div>
+      <div class="ogrid" style="margin-bottom:14px">
+        <div class="oc"><div class="ol">Trades</div><div class="ov">${s.n}</div></div>
+        <div class="oc"><div class="ol">Win Rate</div><div class="ov ${s.wr>=50?'win':'loss'}">${s.wr}%</div></div>
+        <div class="oc"><div class="ol">Total P&L</div><div class="ov ${s.total>=0?'win':'loss'}">${s.total>=0?'+':''}${s.total}%</div></div>
+        <div class="oc"><div class="ol">Avg P&L</div><div class="ov ${s.avg>=0?'win':'loss'}">${s.avg>=0?'+':''}${s.avg}%</div></div>
+        <div class="oc"><div class="ol">Best / Worst</div><div class="ov"><span class="win">+${s.best}%</span> / <span class="loss">${s.worst}%</span></div></div>
+        <div class="oc"><div class="ol">Max Consec Loss</div><div class="ov loss">${c.mx} (${c.sum}%)</div></div>
+      </div>
+      <div style="overflow-x:auto">
+      <table class="tt">
+        <thead><tr><th>#</th><th>Entry Time</th><th>Coin</th><th>Strategy</th><th>Dir</th><th>Entry $</th><th>Exit $</th><th>PNL %</th><th>HH %</th><th>LL %</th><th>Duration</th><th>Exit Reason</th><th>Elapsed</th></tr></thead>
+        <tbody>`;
+    let idx2 = 1;
+    for(const t of arr){
+      const pc = t.pnl > 0 ? 'win' : 'loss';
+      html += `<tr class="${pc}">
+        <td>#${idx2++}</td>
+        <td>${fmtDate(t.et)}</td>
+        <td><strong>${(t.sym||'').replace('USDT','/USDT')}</strong></td>
+        <td>${t.ch||''}</td>
+        <td class="${t.dir==='UP'?'win':'loss'}">${t.dir||'UP'}</td>
+        <td>$${p4(t.ep)}</td>
+        <td>$${p4(t.xp||0)}</td>
+        <td class="${pc}"><strong>${t.pnl>=0?'+':''}${t.pnl}%</strong></td>
+        <td class="win">+${t.hhPct||0}%</td>
+        <td class="loss">${t.llPct||0}%</td>
+        <td>${fmtDur(t.dur||0)}</td>
+        <td style="font-size:0.65rem">${t.reason||'—'}</td>
+        <td>${t._elapsedH !== undefined ? t._elapsedH.toFixed(1)+'h' : '—'}</td>
+      </tr>`;
+    }
+    html += `</tbody></table></div></div>`;
+  }
+
+  html += `</body></html>`;
+
+  let printWin = window.open('', '_blank');
+  if(!printWin){
+    const blob = new Blob([html], {type:'text/html'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `EMA_Day1_6HBlocks_Report.html`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast('Pop-up blocked: Report downloaded as HTML!');
+    return;
+  }
+  printWin.document.write(html);
+  printWin.document.close();
+  setTimeout(()=>{ try{ printWin.print(); }catch(e){} }, 500);
 }
 
 function downloadCoinPDF(){
