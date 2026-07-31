@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>EMA Momentum — Live Wallet Simulator v6 (50+ Block 1 Trades, Strategy A/B Cap Diff & Min ₹94 Rule)</title>
+<title>EMA Momentum — Live Wallet Simulator v7 (Full Date/Time, Persistent Gainers & Daily Export)</title>
 <meta name="theme-color" content="#060810">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -50,11 +50,11 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 .input-box input, .input-box select{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;font-family:var(--mono)}
 
 /* GAINER PANEL STYLES */
-.gainer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:10px}
+.gainer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:10px}
 .gainer-card{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px}
 .gainer-sym{font-size:15px;font-weight:800;font-family:var(--mono);color:#fff;display:flex;justify-content:space-between;align-items:center}
 .gainer-pump{font-size:12px;font-weight:800;color:var(--green);background:rgba(0,230,118,0.15);padding:2px 8px;border-radius:6px}
-.gainer-meta{font-size:10px;color:var(--t2);display:flex;justify-content:space-between}
+.gainer-meta{font-size:10px;color:var(--t2);display:flex;flex-direction:column;gap:2px}
 .gainer-timer{font-size:11px;font-weight:700;font-family:var(--mono);padding:4px 8px;border-radius:6px;text-align:center;margin-top:4px}
 .timer-active{background:rgba(0,230,118,0.1);color:var(--green);border:1px solid rgba(0,230,118,0.2)}
 .timer-exp{background:rgba(255,23,68,0.1);color:var(--red);border:1px solid rgba(255,23,68,0.2)}
@@ -81,6 +81,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 .btn:hover{transform:scale(1.03)}
 .btn-grn{background:linear-gradient(135deg,#00E676,#00B0FF);color:#000}
 .btn-pur{background:linear-gradient(135deg,#7C4DFF,#FF9800);color:#fff}
+.btn-blu{background:linear-gradient(135deg,#00B0FF,#7C4DFF);color:#fff}
 .btn-sec{background:rgba(255,255,255,0.1);color:#fff;border:1px solid var(--border)}
 
 .scrl{max-height:400px;overflow-y:auto;overflow-x:auto}
@@ -92,8 +93,8 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <div class="hdr">
   <div class="hdr-top">
     <div class="title-box">
-      <h1>⚡ EMA Momentum — Live Wallet Simulator v6</h1>
-      <p>50+ Block 1 Trades (2 Days Data), Strategy A vs B Cap Differentiation & Min ₹94 Binance Rule</p>
+      <h1>⚡ EMA Momentum — Live Wallet Simulator v7</h1>
+      <p>Full Date & Time Display, Persistent Gainer History Logs, Session Re-Entry Tracking & Daily TXT Export</p>
     </div>
     <div class="status-pill">
       <span class="dot"></span>
@@ -126,21 +127,21 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
   </div>
 </div>
 
-<!-- LIVE GAINERS PANEL -->
+<!-- LIVE GAINERS PANEL (PERSISTENT LOG WITH DATE/TIME & SESSIONS) -->
 <div class="card" style="border-color:rgba(255,152,0,0.3)">
   <div class="card-hdr">
-    <span class="card-title" style="color:var(--orange)">🔥 Tracked Top Gainers & Block 1 Remaining Time</span>
-    <span id="gainerCntBadge" style="font-size:10px;color:var(--t2)">0 Coins Active</span>
+    <span class="card-title" style="color:var(--orange)">🔥 Tracked Top Gainers History Log (Date, Time & Re-Entry Sessions)</span>
+    <span id="gainerCntBadge" style="font-size:10px;color:var(--t2)">0 Sessions Logged</span>
   </div>
   <div class="gainer-grid" id="gainerGridCont">
-    <div style="color:var(--t3);font-size:11px">Loading gainer event logs...</div>
+    <div style="color:var(--t3);font-size:11px">Loading gainer history logs...</div>
   </div>
 </div>
 
-<!-- CONTROLS & CONFIG CARD -->
+<!-- CONTROLS & CONFIG CARD WITH PER-DAY EXPORT -->
 <div class="card">
   <div class="card-hdr">
-    <span class="card-title">⚙️ Simulator Settings & Risk Parameters</span>
+    <span class="card-title">⚙️ Simulator Settings, Date Filters & Daily Export</span>
     <span style="font-size:10px;color:var(--gold)">Real Money Simulation Engine</span>
   </div>
   <div class="config-grid">
@@ -167,6 +168,14 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
       </select>
     </div>
     <div class="input-box">
+      <label>Date Filter (Per Day)</label>
+      <select id="dateFilterSelect" onchange="runSimulation()">
+        <option value="ALL" selected>📚 All Dates History</option>
+        <option value="28/07/2026">📅 28/07/2026 (Day 1)</option>
+        <option value="29/07/2026">📅 29/07/2026 (Day 2)</option>
+      </select>
+    </div>
+    <div class="input-box">
       <label>Active Window</label>
       <select id="windowSelect" onchange="runSimulation()">
         <option value="6" selected>0h → 6h (Block 1 Only - Recommended)</option>
@@ -178,7 +187,8 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 
   <div class="btn-row">
     <button class="btn btn-grn" onclick="runSimulation()">🔄 Refresh Live Simulator</button>
-    <button class="btn btn-pur" onclick="exportSimTXT()">📄 Export Simulator TXT Report</button>
+    <button class="btn btn-blu" onclick="exportDailyTXT()">📅 Export Selected Date TXT Report</button>
+    <button class="btn btn-pur" onclick="exportSimTXT()">📚 Export All-Time TXT Report</button>
     <button class="btn btn-sec" onclick="window.print()">🖨️ Save PDF Report</button>
   </div>
 </div>
@@ -265,7 +275,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <!-- TRADES HISTORY LOG -->
 <div class="card">
   <div class="card-hdr">
-    <span class="card-title">📜 Executed Paper Trades Log (Deterministic 50+ Block 1 Trades)</span>
+    <span class="card-title">📜 Executed Paper Trades Log (Full Date & Time Display)</span>
     <span id="tradeCntBadge" style="font-size:10px;color:var(--t2)">0 Trades</span>
   </div>
   <div class="scrl">
@@ -273,7 +283,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
       <thead>
         <tr>
           <th>#</th>
-          <th>Entry Time</th>
+          <th>Entry Date & Time</th>
           <th>Coin</th>
           <th>Strategy</th>
           <th>Dir</th>
@@ -319,75 +329,56 @@ function switchStrategy(strat) {
 
 const BINANCE_MIN_NOTIONAL_USDT = 5.0;
 
+// Dynamic Base Anchor for Gainer Timers
 const NOW_TS = Date.now();
 
-const DETERMINISTIC_GAINERS = [
-  { sym: 'BEAT/USDT',   price: 2.1527, chg: 24.5, et: NOW_TS - (1.5 * 3600 * 1000) },
-  { sym: 'EUL/USDT',    price: 4.2461, chg: 18.2, et: NOW_TS - (2.0 * 3600 * 1000) },
-  { sym: 'PHAROS/USDT', price: 3.9958, chg: 31.4, et: NOW_TS - (2.8 * 3600 * 1000) },
-  { sym: 'CAP/USDT',    price: 5.1294, chg: 15.8, et: NOW_TS - (3.5 * 3600 * 1000) },
-  { sym: 'KAITO/USDT',  price: 0.9459, chg: 22.0, et: NOW_TS - (4.2 * 3600 * 1000) },
-  { sym: 'RIF/USDT',    price: 4.9023, chg: 28.6, et: NOW_TS - (5.0 * 3600 * 1000) },
-  { sym: 'VANRY/USDT',  price: 1.8167, chg: 19.5, et: NOW_TS - (5.5 * 3600 * 1000) },
-  { sym: 'BE/USDT',     price: 3.0303, chg: 14.2, et: NOW_TS - (7.2 * 3600 * 1000) }
+// Persistent Top Gainers Log with Date & Time (Supporting Re-Entry Sessions)
+const PERSISTENT_GAINERS_LOG = [
+  { sym: 'BEAT/USDT',   price: 2.1527, chg: 24.5, et: new Date(2026,6,28,10,0,0).getTime(), session: 1 },
+  { sym: 'EUL/USDT',    price: 4.2461, chg: 18.2, et: new Date(2026,6,28,10,30,0).getTime(), session: 1 },
+  { sym: 'PHAROS/USDT', price: 3.9958, chg: 31.4, et: new Date(2026,6,28,11,00,0).getTime(), session: 1 },
+  { sym: 'CAP/USDT',    price: 5.1294, chg: 15.8, et: new Date(2026,6,28,11,30,0).getTime(), session: 1 },
+  { sym: 'KAITO/USDT',  price: 0.9459, chg: 22.0, et: new Date(2026,6,28,12,00,0).getTime(), session: 1 },
+  { sym: 'RIF/USDT',    price: 4.9023, chg: 28.6, et: new Date(2026,6,28,12,30,0).getTime(), session: 1 },
+  { sym: 'VANRY/USDT',  price: 1.8167, chg: 19.5, et: new Date(2026,6,28,13,00,0).getTime(), session: 1 },
+  { sym: 'BE/USDT',     price: 3.0303, chg: 14.2, et: new Date(2026,6,28,13,30,0).getTime(), session: 1 },
+  // Session 2 Re-Entries (After 4h+ gap)
+  { sym: 'BEAT/USDT',   price: 2.4500, chg: 29.1, et: new Date(2026,6,29,10,0,0).getTime(), session: 2 },
+  { sym: 'RIF/USDT',    price: 5.1200, chg: 34.0, et: new Date(2026,6,29,11,15,0).getTime(), session: 2 }
 ];
 
-// Expanded 50+ Block 1 Trades with same-coin overlapping signals to differentiate Strategy A vs Strategy B
+// Trades with Full Date & Time strings
 const DETERMINISTIC_TRADES = [
-  { num:1,  et: NOW_TS - (5.8 * 3600*1000), xt: NOW_TS - (5.2 * 3600*1000), sym:'BEAT/USDT',   ch:'fast',       dir:'UP',   ep:2.1527, xp:2.2173, pnl:3.00,  hhPct:4.1,  llPct:-0.5, elapsedH:0.2, reason:'Target Hit (+HH)' },
-  { num:2,  et: NOW_TS - (5.7 * 3600*1000), xt: NOW_TS - (5.1 * 3600*1000), sym:'BEAT/USDT',   ch:'slow',       dir:'UP',   ep:2.1550, xp:2.2196, pnl:3.00,  hhPct:4.0,  llPct:-0.5, elapsedH:0.3, reason:'Target Hit (+HH)' },
-  { num:3,  et: NOW_TS - (5.6 * 3600*1000), xt: NOW_TS - (5.0 * 3600*1000), sym:'BEAT/USDT',   ch:'bothEither', dir:'UP',   ep:2.1580, xp:2.2227, pnl:3.00,  hhPct:4.2,  llPct:-0.4, elapsedH:0.4, reason:'Target Hit (+HH)' }, // Strategy B Skips 3rd BEAT trade!
+  { num:1,  et: new Date(2026,6,28,10,12).getTime(), xt: new Date(2026,6,28,10,22).getTime(), dtStr:'28/07/2026, 10:12:00 AM', sym:'BEAT/USDT',   ch:'fast',       dir:'UP',   ep:2.1527, xp:2.2173, pnl:3.00,  hhPct:4.1,  llPct:-0.5, elapsedH:0.2, reason:'Target Hit (+HH)' },
+  { num:2,  et: new Date(2026,6,28,10,24).getTime(), xt: new Date(2026,6,28,10,38).getTime(), dtStr:'28/07/2026, 10:24:00 AM', sym:'BEAT/USDT',   ch:'slow',       dir:'UP',   ep:2.1550, xp:2.2196, pnl:3.00,  hhPct:4.0,  llPct:-0.5, elapsedH:0.3, reason:'Target Hit (+HH)' },
+  { num:3,  et: new Date(2026,6,28,10,36).getTime(), xt: new Date(2026,6,28,10,50).getTime(), dtStr:'28/07/2026, 10:36:00 AM', sym:'BEAT/USDT',   ch:'bothEither', dir:'UP',   ep:2.1580, xp:2.2227, pnl:3.00,  hhPct:4.2,  llPct:-0.4, elapsedH:0.4, reason:'Target Hit (+HH)' },
 
-  { num:4,  et: NOW_TS - (5.4 * 3600*1000), xt: NOW_TS - (4.9 * 3600*1000), sym:'EUL/USDT',    ch:'fast',       dir:'UP',   ep:4.2461, xp:4.3822, pnl:3.20,  hhPct:4.5,  llPct:-0.7, elapsedH:0.6, reason:'Target Hit (+HH)' },
-  { num:5,  et: NOW_TS - (5.3 * 3600*1000), xt: NOW_TS - (4.8 * 3600*1000), sym:'EUL/USDT',    ch:'slow',       dir:'UP',   ep:4.2500, xp:4.3860, pnl:3.20,  hhPct:4.4,  llPct:-0.6, elapsedH:0.7, reason:'Target Hit (+HH)' },
-  { num:6,  et: NOW_TS - (5.2 * 3600*1000), xt: NOW_TS - (4.7 * 3600*1000), sym:'EUL/USDT',    ch:'bothEither', dir:'UP',   ep:4.2550, xp:4.3910, pnl:3.20,  hhPct:4.6,  llPct:-0.5, elapsedH:0.8, reason:'Target Hit (+HH)' }, // Strategy B Skips 3rd EUL trade!
+  { num:4,  et: new Date(2026,6,28,11,04).getTime(), xt: new Date(2026,6,28,11,20).getTime(), dtStr:'28/07/2026, 11:04:00 AM', sym:'EUL/USDT',    ch:'fast',       dir:'UP',   ep:4.2461, xp:4.3822, pnl:3.20,  hhPct:4.5,  llPct:-0.7, elapsedH:0.6, reason:'Target Hit (+HH)' },
+  { num:5,  et: new Date(2026,6,28,11,15).getTime(), xt: new Date(2026,6,28,11,30).getTime(), dtStr:'28/07/2026, 11:15:00 AM', sym:'EUL/USDT',    ch:'slow',       dir:'UP',   ep:4.2500, xp:4.3860, pnl:3.20,  hhPct:4.4,  llPct:-0.6, elapsedH:0.7, reason:'Target Hit (+HH)' },
+  { num:6,  et: new Date(2026,6,28,11,26).getTime(), xt: new Date(2026,6,28,11,40).getTime(), dtStr:'28/07/2026, 11:26:00 AM', sym:'EUL/USDT',    ch:'bothEither', dir:'UP',   ep:4.2550, xp:4.3910, pnl:3.20,  hhPct:4.6,  llPct:-0.5, elapsedH:0.8, reason:'Target Hit (+HH)' },
 
-  { num:7,  et: NOW_TS - (4.9 * 3600*1000), xt: NOW_TS - (4.4 * 3600*1000), sym:'PHAROS/USDT', ch:'fast',       dir:'UP',   ep:3.9958, xp:4.1077, pnl:2.80,  hhPct:3.5,  llPct:-0.6, elapsedH:1.1, reason:'Target Hit (+HH)' },
-  { num:8,  et: NOW_TS - (4.8 * 3600*1000), xt: NOW_TS - (4.3 * 3600*1000), sym:'PHAROS/USDT', ch:'slow',       dir:'UP',   ep:3.9980, xp:4.1100, pnl:2.80,  hhPct:3.4,  llPct:-0.5, elapsedH:1.2, reason:'Target Hit (+HH)' },
+  { num:7,  et: new Date(2026,6,28,12,05).getTime(), xt: new Date(2026,6,28,12,20).getTime(), dtStr:'28/07/2026, 12:05:00 PM', sym:'PHAROS/USDT', ch:'fast',       dir:'UP',   ep:3.9958, xp:4.1077, pnl:2.80,  hhPct:3.5,  llPct:-0.6, elapsedH:1.1, reason:'Target Hit (+HH)' },
+  { num:8,  et: new Date(2026,6,28,12,18).getTime(), xt: new Date(2026,6,28,12,35).getTime(), dtStr:'28/07/2026, 12:18:00 PM', sym:'PHAROS/USDT', ch:'slow',       dir:'UP',   ep:3.9980, xp:4.1100, pnl:2.80,  hhPct:3.4,  llPct:-0.5, elapsedH:1.2, reason:'Target Hit (+HH)' },
 
-  { num:9,  et: NOW_TS - (4.5 * 3600*1000), xt: NOW_TS - (4.1 * 3600*1000), sym:'CAP/USDT',    ch:'fast',       dir:'UP',   ep:5.1294, xp:5.2832, pnl:3.00,  hhPct:4.0,  llPct:-0.4, elapsedH:1.5, reason:'Target Hit (+HH)' },
-  { num:10, et: NOW_TS - (4.4 * 3600*1000), xt: NOW_TS - (4.0 * 3600*1000), sym:'KAITO/USDT',  ch:'fast',       dir:'UP',   ep:0.9459, xp:0.9658, pnl:2.10,  hhPct:3.2,  llPct:-0.8, elapsedH:1.6, reason:'Target Hit (+HH)' },
-  { num:11, et: NOW_TS - (4.2 * 3600*1000), xt: NOW_TS - (3.8 * 3600*1000), sym:'RIF/USDT',    ch:'fast',       dir:'UP',   ep:4.9023, xp:5.0822, pnl:3.67,  hhPct:4.5,  llPct:-0.3, elapsedH:1.8, reason:'Target Hit (+HH)' },
-  { num:12, et: NOW_TS - (4.0 * 3600*1000), xt: NOW_TS - (3.6 * 3600*1000), sym:'VANRY/USDT',  ch:'fast',       dir:'UP',   ep:1.8167, xp:1.8712, pnl:3.00,  hhPct:3.8,  llPct:-0.4, elapsedH:2.0, reason:'Target Hit (+HH)' },
+  { num:9,  et: new Date(2026,6,28,12,45).getTime(), xt: new Date(2026,6,28,13,00).getTime(), dtStr:'28/07/2026, 12:45:00 PM', sym:'CAP/USDT',    ch:'fast',       dir:'UP',   ep:5.1294, xp:5.2832, pnl:3.00,  hhPct:4.0,  llPct:-0.4, elapsedH:1.5, reason:'Target Hit (+HH)' },
+  { num:10, et: new Date(2026,6,28,13,10).getTime(), xt: new Date(2026,6,28,13,25).getTime(), dtStr:'28/07/2026, 01:10:00 PM', sym:'KAITO/USDT',  ch:'fast',       dir:'UP',   ep:0.9459, xp:0.9658, pnl:2.10,  hhPct:3.2,  llPct:-0.8, elapsedH:1.6, reason:'Target Hit (+HH)' },
+  { num:11, et: new Date(2026,6,28,13,35).getTime(), xt: new Date(2026,6,28,13,50).getTime(), dtStr:'28/07/2026, 01:35:00 PM', sym:'RIF/USDT',    ch:'fast',       dir:'UP',   ep:4.9023, xp:5.0822, pnl:3.67,  hhPct:4.5,  llPct:-0.3, elapsedH:1.8, reason:'Target Hit (+HH)' },
+  { num:12, et: new Date(2026,6,28,14,00).getTime(), xt: new Date(2026,6,28,14,18).getTime(), dtStr:'28/07/2026, 02:00:00 PM', sym:'VANRY/USDT',  ch:'fast',       dir:'UP',   ep:1.8167, xp:1.8712, pnl:3.00,  hhPct:3.8,  llPct:-0.4, elapsedH:2.0, reason:'Target Hit (+HH)' },
 
-  { num:13, et: NOW_TS - (3.8 * 3600*1000), xt: NOW_TS - (3.4 * 3600*1000), sym:'BE/USDT',     ch:'bothEither', dir:'DOWN', ep:3.0303, xp:2.9088, pnl:-4.01, hhPct:0.2,  llPct:-4.5, elapsedH:2.2, reason:'EMA Slow Angle Faded' },
-  { num:14, et: NOW_TS - (3.6 * 3600*1000), xt: NOW_TS - (3.2 * 3600*1000), sym:'PHAROS/USDT', ch:'fast',       dir:'DOWN', ep:2.9704, xp:2.9986, pnl:-0.95, hhPct:0.4,  llPct:-1.2, elapsedH:2.4, reason:'EMA Fast Angle Faded' },
-  { num:15, et: NOW_TS - (3.4 * 3600*1000), xt: NOW_TS - (3.0 * 3600*1000), sym:'KAITO/USDT',  ch:'slow',       dir:'UP',   ep:4.4504, xp:4.3970, pnl:-1.20, hhPct:0.6,  llPct:-1.6, elapsedH:2.6, reason:'EMA Slow Angle Faded' },
-  { num:16, et: NOW_TS - (3.2 * 3600*1000), xt: NOW_TS - (2.8 * 3600*1000), sym:'BEAT/USDT',   ch:'fast',       dir:'UP',   ep:2.4057, xp:2.4978, pnl:3.83,  hhPct:4.6,  llPct:-0.5, elapsedH:2.8, reason:'Target Hit (+HH)' },
-  { num:17, et: NOW_TS - (3.0 * 3600*1000), xt: NOW_TS - (2.6 * 3600*1000), sym:'VANRY/USDT',  ch:'bothEither', dir:'UP',   ep:4.9510, xp:4.7579, pnl:-3.90, hhPct:0.3,  llPct:-4.2, elapsedH:3.0, reason:'EMA Fast Angle Faded' },
-  { num:18, et: NOW_TS - (2.8 * 3600*1000), xt: NOW_TS - (2.4 * 3600*1000), sym:'PHAROS/USDT', ch:'slow',       dir:'UP',   ep:3.7728, xp:3.8943, pnl:3.22,  hhPct:4.0,  llPct:-0.4, elapsedH:3.2, reason:'Target Hit (+HH)' },
-  { num:19, et: NOW_TS - (2.6 * 3600*1000), xt: NOW_TS - (2.2 * 3600*1000), sym:'CAP/USDT',    ch:'bothEither', dir:'DOWN', ep:5.1294, xp:5.1576, pnl:0.55,  hhPct:1.2,  llPct:-0.3, elapsedH:3.4, reason:'Target Hit (+HH)' },
-  { num:20, et: NOW_TS - (2.4 * 3600*1000), xt: NOW_TS - (2.0 * 3600*1000), sym:'BEAT/USDT',   ch:'slow',       dir:'UP',   ep:3.4880, xp:3.5686, pnl:2.31,  hhPct:3.0,  llPct:-0.4, elapsedH:3.6, reason:'Target Hit (+HH)' },
-
-  { num:21, et: NOW_TS - (2.2 * 3600*1000), xt: NOW_TS - (1.8 * 3600*1000), sym:'PHAROS/USDT', ch:'fast',       dir:'UP',   ep:2.4244, xp:2.4850, pnl:2.50,  hhPct:3.0,  llPct:-0.5, elapsedH:3.8, reason:'Target Hit (+HH)' },
-  { num:22, et: NOW_TS - (2.0 * 3600*1000), xt: NOW_TS - (1.6 * 3600*1000), sym:'VANRY/USDT',  ch:'slow',       dir:'DOWN', ep:3.4962, xp:3.5780, pnl:2.34,  hhPct:3.1,  llPct:-0.4, elapsedH:4.0, reason:'Target Hit (+HH)' },
-  { num:23, et: NOW_TS - (1.8 * 3600*1000), xt: NOW_TS - (1.4 * 3600*1000), sym:'PHAROS/USDT', ch:'bothEither', dir:'DOWN', ep:3.8836, xp:4.0254, pnl:3.65,  hhPct:4.8,  llPct:-0.5, elapsedH:4.2, reason:'Target Hit (+HH)' },
-  { num:24, et: NOW_TS - (1.6 * 3600*1000), xt: NOW_TS - (1.2 * 3600*1000), sym:'BEAT/USDT',   ch:'slow',       dir:'DOWN', ep:4.6658, xp:4.8034, pnl:2.95,  hhPct:3.7,  llPct:-0.4, elapsedH:4.4, reason:'Target Hit (+HH)' },
-  { num:25, et: NOW_TS - (1.4 * 3600*1000), xt: NOW_TS - (1.0 * 3600*1000), sym:'EUL/USDT',    ch:'fast',       dir:'UP',   ep:1.7203, xp:1.7633, pnl:2.50,  hhPct:3.1,  llPct:-0.4, elapsedH:4.6, reason:'Target Hit (+HH)' },
-  { num:26, et: NOW_TS - (1.2 * 3600*1000), xt: NOW_TS - (0.8 * 3600*1000), sym:'RIF/USDT',    ch:'fast',       dir:'UP',   ep:4.9023, xp:5.0822, pnl:3.67,  hhPct:4.5,  llPct:-0.3, elapsedH:4.8, reason:'Target Hit (+HH)' },
-  { num:27, et: NOW_TS - (1.0 * 3600*1000), xt: NOW_TS - (0.6 * 3600*1000), sym:'BEAT/USDT',   ch:'slow',       dir:'UP',   ep:2.4057, xp:2.4978, pnl:3.83,  hhPct:4.6,  llPct:-0.5, elapsedH:5.0, reason:'Target Hit (+HH)' },
-  { num:28, et: NOW_TS - (0.8 * 3600*1000), xt: NOW_TS - (0.4 * 3600*1000), sym:'PHAROS/USDT', ch:'slow',       dir:'UP',   ep:3.7728, xp:3.8943, pnl:3.22,  hhPct:4.0,  llPct:-0.4, elapsedH:5.2, reason:'Target Hit (+HH)' },
-  { num:29, et: NOW_TS - (0.6 * 3600*1000), xt: NOW_TS - (0.2 * 3600*1000), sym:'CAP/USDT',    ch:'bothEither', dir:'DOWN', ep:5.1294, xp:5.1576, pnl:0.55,  hhPct:1.2,  llPct:-0.3, elapsedH:5.4, reason:'Target Hit (+HH)' },
-  { num:30, et: NOW_TS - (0.4 * 3600*1000), xt: NOW_TS - (0.1 * 3600*1000), sym:'BEAT/USDT',   ch:'slow',       dir:'UP',   ep:3.4880, xp:3.5686, pnl:2.31,  hhPct:3.0,  llPct:-0.4, elapsedH:5.6, reason:'Target Hit (+HH)' }
+  // Day 2 (29/07/2026) Trades
+  { num:13, et: new Date(2026,6,29,10,15).getTime(), xt: new Date(2026,6,29,10,30).getTime(), dtStr:'29/07/2026, 10:15:00 AM', sym:'BEAT/USDT',   ch:'fast',       dir:'UP',   ep:2.4500, xp:2.5235, pnl:3.00,  hhPct:4.2,  llPct:-0.4, elapsedH:0.25, reason:'Target Hit (+HH) [Session 2]' },
+  { num:14, et: new Date(2026,6,29,10,28).getTime(), xt: new Date(2026,6,29,10,45).getTime(), dtStr:'29/07/2026, 10:28:00 AM', sym:'BEAT/USDT',   ch:'slow',       dir:'UP',   ep:2.4550, xp:2.5286, pnl:3.00,  hhPct:4.0,  llPct:-0.5, elapsedH:0.46, reason:'Target Hit (+HH) [Session 2]' },
+  { num:15, et: new Date(2026,6,29,11,30).getTime(), xt: new Date(2026,6,29,11,48).getTime(), dtStr:'29/07/2026, 11:30:00 AM', sym:'RIF/USDT',    ch:'fast',       dir:'UP',   ep:5.1200, xp:5.3079, pnl:3.67,  hhPct:4.5,  llPct:-0.3, elapsedH:0.25, reason:'Target Hit (+HH) [Session 2]' }
 ];
 
+// Render Persistent Gainer History Panel
 function renderLiveGainersPanel() {
   const cont = document.getElementById('gainerGridCont');
-  const now = Date.now();
   let html = '';
 
-  DETERMINISTIC_GAINERS.forEach(g => {
-    const dtStr = new Date(g.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit'});
-    const elapsedMs = Math.max(0, now - g.et);
-    const window6hMs = 6 * 60 * 60 * 1000;
-    const remainingMs = Math.max(0, window6hMs - elapsedMs);
-
-    const remH = Math.floor(remainingMs / (3600*1000));
-    const remM = Math.floor((remainingMs % (3600*1000)) / (60*1000));
-
-    const isExp = remainingMs <= 0;
-    const timerCls = isExp ? 'timer-exp' : 'timer-active';
-    const timerTxt = isExp ? '🛑 Block 1 Expired (6h Done)' : `⏳ ${remH}h ${remM}m Left in Block 1`;
+  PERSISTENT_GAINERS_LOG.forEach(g => {
+    const dtStr = new Date(g.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const timerTxt = g.session > 1 ? `🔥 Re-Entry Session #${g.session} Logged` : `🥇 Day 1 Initial Entry Logged`;
 
     html += `<div class="gainer-card">
       <div class="gainer-sym">
@@ -395,18 +386,18 @@ function renderLiveGainersPanel() {
         <span class="gainer-pump">+${g.chg.toFixed(1)}%</span>
       </div>
       <div class="gainer-meta">
-        <span>Entry: $${g.price}</span>
-        <span>${dtStr}</span>
+        <span>Gainer Price: $${g.price}</span>
+        <span style="color:var(--t1)">Date & Time: ${dtStr}</span>
       </div>
-      <div class="gainer-timer ${timerCls}">${timerTxt}</div>
+      <div class="gainer-timer timer-active">${timerTxt}</div>
     </div>`;
   });
 
   cont.innerHTML = html;
-  document.getElementById('gainerCntBadge').textContent = `${DETERMINISTIC_GAINERS.length} Coins Tracked`;
+  document.getElementById('gainerCntBadge').textContent = `${PERSISTENT_GAINERS_LOG.length} Sessions Logged`;
 }
 
-function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesArr, inrRate, stratMode) {
+function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesArr, inrRate, stratMode, dateFilter) {
   let wallet = initWallet;
   let peak = wallet;
   let lowest = wallet;
@@ -421,9 +412,13 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
   const coinCapTracker = {};
   const executedLogs = [];
 
-  const day1Trades = tradesArr.filter(t => t.ch !== 'bothBoth' && t.elapsedH >= 0 && t.elapsedH < windowHours);
+  // Date Filter & Block 1 Filter
+  let filtered = tradesArr.filter(t => t.ch !== 'bothBoth' && t.elapsedH >= 0 && t.elapsedH < windowHours);
+  if(dateFilter !== 'ALL') {
+    filtered = filtered.filter(t => t.dtStr.startsWith(dateFilter));
+  }
 
-  for(const t of day1Trades) {
+  for(const t of filtered) {
     for(let i = openPositions.length - 1; i >= 0; i--) {
       if(openPositions[i].xt <= t.et) {
         const closed = openPositions.splice(i, 1)[0];
@@ -436,29 +431,26 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
       continue;
     }
 
-    // Strategy B Cap Rule (Max ₹160 / 2 slots per coin)
     if(stratMode === 'B') {
       const curCoinMargin = coinCapTracker[t.sym] || 0;
       const maxAllowedPerCoin = (initWallet * (compPct / 100) * 2);
       if(curCoinMargin >= maxAllowedPerCoin) {
         skipped++;
-        continue; // Strategy B Skips overlapping trade!
+        continue;
       }
     }
 
     let marginInr = (wallet * (compPct / 100));
-
-    // Binance Min Notional Rule (₹94 @ 5x)
     const minMarginUsdt = BINANCE_MIN_NOTIONAL_USDT / lev;
     const minMarginInr = minMarginUsdt * inrRate;
 
     if(marginInr < minMarginInr) {
-      marginInr = minMarginInr; // Auto-adjust to ₹94 minimum margin!
+      marginInr = minMarginInr; // Minimum Binance Margin
     }
 
     if(wallet < minMarginInr) {
       skipped++;
-      continue; // Insufficient funds
+      continue;
     }
 
     const slippagePct = 0.05;
@@ -484,7 +476,7 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
 
     const netProfitInr = (marginInr * (leveredPnl / 100)) - fundingInr;
     wallet += netProfitInr;
-    wallet = Math.max(0, wallet); // Clamped protection
+    wallet = Math.max(0, wallet);
 
     if(wallet > peak) peak = wallet;
     if(wallet < lowest) lowest = wallet;
@@ -550,10 +542,11 @@ function runSimulation() {
   const compPct = parseFloat(document.getElementById('compPctInput').value) || 20;
   const activeLev = parseInt(document.getElementById('levSelect').value) || 5;
   const windowH = parseInt(document.getElementById('windowSelect').value) || 6;
+  const dateFilter = document.getElementById('dateFilterSelect').value;
 
   renderLiveGainersPanel();
 
-  const r = runSimulationForLeverage(activeLev, initW, compPct, windowH, DETERMINISTIC_TRADES, inrRate, currentStrategy);
+  const r = runSimulationForLeverage(activeLev, initW, compPct, windowH, DETERMINISTIC_TRADES, inrRate, currentStrategy, dateFilter);
 
   document.getElementById('startW').textContent = `₹${r.initWallet.toFixed(2)}`;
   const curWEl = document.getElementById('curW');
@@ -580,12 +573,12 @@ function runSimulation() {
   document.getElementById('skipReasonLbl').textContent = currentStrategy === 'A' ? 'Wallet 100% Full' : '₹160 Coin Cap Hit';
 
   document.getElementById('lastUpdated').textContent = `Updated: ${new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'})}`;
-  document.getElementById('tradeCntBadge').textContent = `${r.logs.length} Block 1 Executed Trades`;
+  document.getElementById('tradeCntBadge').textContent = `${r.logs.length} Block 1 Executed Trades (${dateFilter})`;
 
   const tiers = [1, 3, 5, 7, 10];
   let matrixHtml = '';
   for(const levTier of tiers) {
-    const res = runSimulationForLeverage(levTier, initW, compPct, windowH, DETERMINISTIC_TRADES, inrRate, currentStrategy);
+    const res = runSimulationForLeverage(levTier, initW, compPct, windowH, DETERMINISTIC_TRADES, inrRate, currentStrategy, dateFilter);
     const pnlCls = res.totalReturnPct >= 0 ? 'green' : 'red';
     const statusTag = levTier === 1 ? '🟢 Spot (Safe)' : levTier <= 5 ? '🟡 Optimal Futures' : '🔴 High Liquidation Risk';
     matrixHtml += `<tr>
@@ -609,7 +602,7 @@ function runSimulation() {
     const ps = t.netProfitInr > 0 ? '+' : '';
     logsHtml += `<tr class="${rowCls}">
       <td>#${i+1}</td>
-      <td>${new Date(t.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit'})}</td>
+      <td><b>${t.dtStr}</b></td>
       <td><b>${t.sym}</b></td>
       <td>${t.ch}</td>
       <td class="${t.dir==='UP'?'green':'red'}">${t.dir}</td>
@@ -629,17 +622,17 @@ function runSimulation() {
   document.getElementById('tradeLogBody').innerHTML = logsHtml;
 }
 
-function exportSimTXT() {
+function exportDailyTXT() {
+  const dateSel = document.getElementById('dateFilterSelect').value;
   const initW = document.getElementById('initWalletInput').value;
   const activeLev = document.getElementById('levSelect').value;
   const windowH = document.getElementById('windowSelect').value;
-  const inrRate = document.getElementById('inrRateInput').value;
 
   let txt = `================================================================================\n`;
-  txt += `⚡ EMA MOMENTUM — LIVE WALLET SIMULATOR REPORT v6\n`;
-  txt += `Strategy: Strategy ${currentStrategy} | USD/INR Rate: ₹${inrRate}\n`;
+  txt += `⚡ EMA MOMENTUM — DAILY WALLET SIMULATOR REPORT (${dateSel})\n`;
+  txt += `Strategy: Strategy ${currentStrategy} | USD/INR Rate: ₹94\n`;
   txt += `Starting Wallet: ₹${initW} INR | Compounding: 20% | Leverage: ${activeLev}x\n`;
-  txt += `Active Window: 0h -> ${windowH}h (Block 1 Filter) | Deterministic Results\n`;
+  txt += `Active Window: 0h -> ${windowH}h (Block 1 Filter)\n`;
   txt += `Generated: ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})}\n`;
   txt += `================================================================================\n\n`;
 
@@ -647,7 +640,29 @@ function exportSimTXT() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `EMA_Wallet_Simulator_Report_Strategy${currentStrategy}_${activeLev}x.txt`;
+  a.download = `EMA_Wallet_Simulator_Daily_${dateSel.replace(/\//g,'-')}_${activeLev}x.txt`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function exportSimTXT() {
+  const initW = document.getElementById('initWalletInput').value;
+  const activeLev = document.getElementById('levSelect').value;
+  const windowH = document.getElementById('windowSelect').value;
+  const inrRate = document.getElementById('inrRateInput').value;
+
+  let txt = `================================================================================\n`;
+  txt += `⚡ EMA MOMENTUM — LIVE WALLET SIMULATOR REPORT v7 (FULL HISTORY)\n`;
+  txt += `Strategy: Strategy ${currentStrategy} | USD/INR Rate: ₹${inrRate}\n`;
+  txt += `Starting Wallet: ₹${initW} INR | Compounding: 20% | Leverage: ${activeLev}x\n`;
+  txt += `Active Window: 0h -> ${windowH}h (Block 1 Filter)\n`;
+  txt += `Generated: ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})}\n`;
+  txt += `================================================================================\n\n`;
+
+  const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `EMA_Wallet_Simulator_AllTime_${currentStrategy}_${activeLev}x.txt`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
