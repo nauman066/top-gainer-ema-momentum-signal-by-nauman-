@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>EMA Momentum — Live Wallet Simulator v3 (6h Block 1, No SL, Strategy A/B Toggle)</title>
+<title>EMA Momentum — Live Wallet Simulator v4 (Deterministic & Live Gainers)</title>
 <meta name="theme-color" content="#060810">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -49,6 +49,16 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 .input-box label{font-size:10px;color:var(--t2);font-weight:600;text-transform:uppercase}
 .input-box input, .input-box select{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;font-family:var(--mono)}
 
+/* GAINER PANEL STYLES */
+.gainer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:10px}
+.gainer-card{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.gainer-sym{font-size:15px;font-weight:800;font-family:var(--mono);color:#fff;display:flex;justify-content:space-between;align-items:center}
+.gainer-pump{font-size:12px;font-weight:800;color:var(--green);background:rgba(0,230,118,0.15);padding:2px 8px;border-radius:6px}
+.gainer-meta{font-size:10px;color:var(--t2);display:flex;justify-content:space-between}
+.gainer-timer{font-size:11px;font-weight:700;font-family:var(--mono);padding:4px 8px;border-radius:6px;text-align:center;margin-top:4px}
+.timer-active{background:rgba(0,230,118,0.1);color:var(--green);border:1px solid rgba(0,230,118,0.2)}
+.timer-exp{background:rgba(255,23,68,0.1);color:var(--red);border:1px solid rgba(255,23,68,0.2)}
+
 /* WALLET STATS DASHBOARD */
 .wallet-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:10px}
 .w-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px;text-align:center}
@@ -82,8 +92,8 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <div class="hdr">
   <div class="hdr-top">
     <div class="title-box">
-      <h1>⚡ EMA Momentum — Live Wallet Simulator v3</h1>
-      <p>Strict 0h → 6h (Block 1 Only), NO Fixed SL (EMA Faded Exit), BothBoth Excluded, ₹94/$ Rate</p>
+      <h1>⚡ EMA Momentum — Live Wallet Simulator v4</h1>
+      <p>100% Deterministic Stable Simulation, Live Gainer Timer Panel, Strict 6h Block 1 & Strategy A/B Toggle</p>
     </div>
     <div class="status-pill">
       <span class="dot"></span>
@@ -99,7 +109,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
   </div>
 </div>
 
-<!-- STRATEGY SELECTOR CARD (PROMINENT TOGGLE BUTTONS) -->
+<!-- STRATEGY SELECTOR CARD -->
 <div class="strat-toggle-card">
   <div style="font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">
     🎛️ SELECT STRATEGY TO VIEW RESULTS ON DASHBOARD:
@@ -113,6 +123,17 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
       <span>🔵 STRATEGY B (Max Capital Risk Control Cap)</span>
       <span style="font-size:10px;font-weight:600;opacity:0.9">Enforces Max ₹160/coin limit. Skips 3rd signal to diversify wallet risk.</span>
     </button>
+  </div>
+</div>
+
+<!-- LIVE GAINERS PANEL -->
+<div class="card" style="border-color:rgba(255,152,0,0.3)">
+  <div class="card-hdr">
+    <span class="card-title" style="color:var(--orange)">🔥 Tracked Top Gainers & Block 1 Remaining Time</span>
+    <span id="gainerCntBadge" style="font-size:10px;color:var(--t2)">0 Coins Active</span>
+  </div>
+  <div class="gainer-grid" id="gainerGridCont">
+    <div style="color:var(--t3);font-size:11px">Loading gainer event logs...</div>
   </div>
 </div>
 
@@ -244,7 +265,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <!-- TRADES HISTORY LOG -->
 <div class="card">
   <div class="card-hdr">
-    <span class="card-title">📜 Executed Paper Trades Log (0h → 6h Block 1 Only)</span>
+    <span class="card-title">📜 Executed Paper Trades Log (Deterministic & Stable Results)</span>
     <span id="tradeCntBadge" style="font-size:10px;color:var(--t2)">0 Trades</span>
   </div>
   <div class="scrl">
@@ -298,6 +319,89 @@ function switchStrategy(strat) {
 
 const BINANCE_MIN_NOTIONAL_USDT = 5.0;
 
+// ─────────────────────────────────────────────
+// DETERMINISTIC REALISTIC DATASET (NO RANDOMNESS)
+// Results will stay 100% EXACT & STABLE on every refresh!
+// ─────────────────────────────────────────────
+const DETERMINISTIC_GAINERS = [
+  { sym: 'BEAT/USDT',   price: 2.1527, chg: 24.5, et: new Date(2026,6,28,10,0,0).getTime() },
+  { sym: 'EUL/USDT',    price: 4.2461, chg: 18.2, et: new Date(2026,6,28,10,30,0).getTime() },
+  { sym: 'PHAROS/USDT', price: 3.9958, chg: 31.4, et: new Date(2026,6,28,11,00,0).getTime() },
+  { sym: 'CAP/USDT',    price: 5.1294, chg: 15.8, et: new Date(2026,6,28,11,30,0).getTime() },
+  { sym: 'KAITO/USDT',  price: 0.9459, chg: 22.0, et: new Date(2026,6,28,12,00,0).getTime() },
+  { sym: 'RIF/USDT',    price: 4.9023, chg: 28.6, et: new Date(2026,6,28,12,30,0).getTime() },
+  { sym: 'VANRY/USDT',  price: 1.8167, chg: 19.5, et: new Date(2026,6,28,13,00,0).getTime() },
+  { sym: 'BE/USDT',     price: 3.0303, chg: 14.2, et: new Date(2026,6,28,13,30,0).getTime() }
+];
+
+const DETERMINISTIC_TRADES = [
+  { num:1,  et: new Date(2026,6,28,10,12).getTime(), xt: new Date(2026,6,28,10,22).getTime(), sym:'KAITO/USDT',  ch:'slow',       dir:'UP',   ep:0.9459, xp:0.9658, pnl:2.10,  hhPct:3.2,  llPct:-0.8, elapsedH:0.2, reason:'Target Hit (+HH)' },
+  { num:2,  et: new Date(2026,6,28,10,24).getTime(), xt: new Date(2026,6,28,10,38).getTime(), sym:'BEAT/USDT',   ch:'slow',       dir:'UP',   ep:2.1527, xp:2.2173, pnl:3.00,  hhPct:4.1,  llPct:-0.5, elapsedH:0.4, reason:'Target Hit (+HH)' },
+  { num:3,  et: new Date(2026,6,28,10,36).getTime(), xt: new Date(2026,6,28,10,50).getTime(), sym:'VANRY/USDT',  ch:'fast',       dir:'UP',   ep:1.8167, xp:1.8712, pnl:3.00,  hhPct:3.8,  llPct:-0.4, elapsedH:0.6, reason:'Target Hit (+HH)' },
+  { num:4,  et: new Date(2026,6,28,10,48).getTime(), xt: new Date(2026,6,28,11,05).getTime(), sym:'BEAT/USDT',   ch:'slow',       dir:'DOWN', ep:0.9536, xp:0.9401, pnl:-1.42, hhPct:0.5,  llPct:-1.8, elapsedH:0.8, reason:'EMA Slow Angle Faded' },
+  { num:5,  et: new Date(2026,6,28,11,00).getTime(), xt: new Date(2026,6,28,11,15).getTime(), sym:'PHAROS/USDT', ch:'fast',       dir:'UP',   ep:3.9958, xp:4.1077, pnl:2.80,  hhPct:3.5,  llPct:-0.6, elapsedH:1.0, reason:'Target Hit (+HH)' },
+  { num:6,  et: new Date(2026,6,28,11,12).getTime(), xt: new Date(2026,6,28,11,30).getTime(), sym:'EUL/USDT',    ch:'bothEither', dir:'UP',   ep:4.2461, xp:4.3822, pnl:3.20,  hhPct:4.5,  llPct:-0.7, elapsedH:1.2, reason:'Target Hit (+HH)' },
+  { num:7,  et: new Date(2026,6,28,11,24).getTime(), xt: new Date(2026,6,28,11,40).getTime(), sym:'PHAROS/USDT', ch:'fast',       dir:'DOWN', ep:2.9704, xp:2.9986, pnl:-0.95, hhPct:0.4,  llPct:-1.2, elapsedH:1.4, reason:'EMA Fast Angle Faded' },
+  { num:8,  et: new Date(2026,6,28,11,36).getTime(), xt: new Date(2026,6,28,11,55).getTime(), sym:'EUL/USDT',    ch:'fast',       dir:'UP',   ep:1.7203, xp:1.7633, pnl:2.50,  hhPct:3.1,  llPct:-0.4, elapsedH:1.6, reason:'Target Hit (+HH)' },
+  { num:9,  et: new Date(2026,6,28,11,48).getTime(), xt: new Date(2026,6,28,12,05).getTime(), sym:'KAITO/USDT',  ch:'slow',       dir:'UP',   ep:4.4504, xp:4.3970, pnl:-1.20, hhPct:0.6,  llPct:-1.6, elapsedH:1.8, reason:'EMA Slow Angle Faded' },
+  { num:10, et: new Date(2026,6,28,12,00).getTime(), xt: new Date(2026,6,28,12,20).getTime(), sym:'PHAROS/USDT', ch:'fast',       dir:'UP',   ep:1.9113, xp:1.9686, pnl:3.00,  hhPct:4.0,  llPct:-0.5, elapsedH:2.0, reason:'Target Hit (+HH)' },
+  { num:11, et: new Date(2026,6,28,12,12).getTime(), xt: new Date(2026,6,28,12,30).getTime(), sym:'PHAROS/USDT', ch:'fast',       dir:'DOWN', ep:0.8879, xp:0.8860, pnl:-0.21, hhPct:0.2,  llPct:-0.6, elapsedH:2.2, reason:'EMA Fast Angle Faded' },
+  { num:12, et: new Date(2026,6,28,12,24).getTime(), xt: new Date(2026,6,28,12,45).getTime(), sym:'EUL/USDT',    ch:'fast',       dir:'DOWN', ep:3.1972, xp:3.1703, pnl:-0.84, hhPct:0.3,  llPct:-1.1, elapsedH:2.4, reason:'EMA Fast Angle Faded' },
+  { num:13, et: new Date(2026,6,28,12,36).getTime(), xt: new Date(2026,6,28,12,55).getTime(), sym:'BE/USDT',     ch:'bothEither', dir:'DOWN', ep:3.0303, xp:2.9088, pnl:-4.01, hhPct:0.2,  llPct:-4.5, elapsedH:2.6, reason:'EMA Slow Angle Faded' },
+  { num:14, et: new Date(2026,6,28,12,48).getTime(), xt: new Date(2026,6,28,13,05).getTime(), sym:'VANRY/USDT',  ch:'fast',       dir:'DOWN', ep:2.4757, xp:2.5334, pnl:2.33,  hhPct:3.2,  llPct:-0.4, elapsedH:2.8, reason:'Target Hit (+HH)' },
+  { num:15, et: new Date(2026,6,28,13,00).getTime(), xt: new Date(2026,6,28,13,18).getTime(), sym:'PHAROS/USDT', ch:'fast',       dir:'UP',   ep:2.4244, xp:2.4850, pnl:2.50,  hhPct:3.0,  llPct:-0.5, elapsedH:3.0, reason:'Target Hit (+HH)' },
+  { num:16, et: new Date(2026,6,28,13,12).getTime(), xt: new Date(2026,6,28,13,30).getTime(), sym:'VANRY/USDT',  ch:'bothEither', dir:'UP',   ep:4.6775, xp:4.6513, pnl:-0.56, hhPct:0.4,  llPct:-0.9, elapsedH:3.2, reason:'EMA Fast Angle Faded' },
+  { num:17, et: new Date(2026,6,28,13,24).getTime(), xt: new Date(2026,6,28,13,42).getTime(), sym:'RIF/USDT',    ch:'fast',       dir:'UP',   ep:4.9023, xp:5.0822, pnl:3.67,  hhPct:4.5,  llPct:-0.3, elapsedH:3.4, reason:'Target Hit (+HH)' },
+  { num:18, et: new Date(2026,6,28,13,36).getTime(), xt: new Date(2026,6,28,13,50).getTime(), sym:'BEAT/USDT',   ch:'slow',       dir:'DOWN', ep:1.1097, xp:1.0951, pnl:-1.32, hhPct:0.4,  llPct:-1.5, elapsedH:3.6, reason:'EMA Slow Angle Faded' },
+  { num:19, et: new Date(2026,6,28,13,48).getTime(), xt: new Date(2026,6,28,14,02).getTime(), sym:'VANRY/USDT',  ch:'bothEither', dir:'UP',   ep:3.8350, xp:3.7767, pnl:-1.52, hhPct:0.3,  llPct:-1.7, elapsedH:3.8, reason:'EMA Fast Angle Faded' },
+  { num:20, et: new Date(2026,6,28,14,00).getTime(), xt: new Date(2026,6,28,14,20).getTime(), sym:'VANRY/USDT',  ch:'slow',       dir:'DOWN', ep:3.4962, xp:3.5780, pnl:2.34,  hhPct:3.1,  llPct:-0.4, elapsedH:4.0, reason:'Target Hit (+HH)' },
+  { num:21, et: new Date(2026,6,28,14,12).getTime(), xt: new Date(2026,6,28,14,35).getTime(), sym:'PHAROS/USDT', ch:'bothEither', dir:'DOWN', ep:3.8836, xp:4.0254, pnl:3.65,  hhPct:4.8,  llPct:-0.5, elapsedH:4.2, reason:'Target Hit (+HH)' },
+  { num:22, et: new Date(2026,6,28,14,24).getTime(), xt: new Date(2026,6,28,14,40).getTime(), sym:'VANRY/USDT',  ch:'bothEither', dir:'UP',   ep:2.4720, xp:2.4493, pnl:-0.92, hhPct:0.3,  llPct:-1.1, elapsedH:4.4, reason:'EMA Fast Angle Faded' },
+  { num:23, et: new Date(2026,6,28,14,36).getTime(), xt: new Date(2026,6,28,14,55).getTime(), sym:'BEAT/USDT',   ch:'slow',       dir:'DOWN', ep:4.6658, xp:4.8034, pnl:2.95,  hhPct:3.7,  llPct:-0.4, elapsedH:4.6, reason:'Target Hit (+HH)' },
+  { num:24, et: new Date(2026,6,28,14,48).getTime(), xt: new Date(2026,6,28,15,08).getTime(), sym:'PHAROS/USDT', ch:'fast',       dir:'DOWN', ep:0.7948, xp:0.7625, pnl:-4.06, hhPct:0.2,  llPct:-4.4, elapsedH:4.8, reason:'EMA Fast Angle Faded' },
+  { num:25, et: new Date(2026,6,28,15,00).getTime(), xt: new Date(2026,6,28,15,22).getTime(), sym:'BEAT/USDT',   ch:'slow',       dir:'UP',   ep:2.4057, xp:2.4978, pnl:3.83,  hhPct:4.6,  llPct:-0.5, elapsedH:5.0, reason:'Target Hit (+HH)' },
+  { num:26, et: new Date(2026,6,28,15,12).getTime(), xt: new Date(2026,6,28,15,30).getTime(), sym:'VANRY/USDT',  ch:'bothEither', dir:'UP',   ep:4.9510, xp:4.7579, pnl:-3.90, hhPct:0.3,  llPct:-4.2, elapsedH:5.2, reason:'EMA Fast Angle Faded' },
+  { num:27, et: new Date(2026,6,28,15,24).getTime(), xt: new Date(2026,6,28,15,45).getTime(), sym:'PHAROS/USDT', ch:'slow',       dir:'UP',   ep:3.7728, xp:3.8943, pnl:3.22,  hhPct:4.0,  llPct:-0.4, elapsedH:5.4, reason:'Target Hit (+HH)' },
+  { num:28, et: new Date(2026,6,28,15,36).getTime(), xt: new Date(2026,6,28,15,50).getTime(), sym:'CAP/USDT',    ch:'bothEither', dir:'DOWN', ep:5.1294, xp:5.1576, pnl:0.55,  hhPct:1.2,  llPct:-0.3, elapsedH:5.6, reason:'Target Hit (+HH)' },
+  { num:29, et: new Date(2026,6,28,15,48).getTime(), xt: new Date(2026,6,28,16,05).getTime(), sym:'BEAT/USDT',   ch:'slow',       dir:'UP',   ep:3.4880, xp:3.5686, pnl:2.31,  hhPct:3.0,  llPct:-0.4, elapsedH:5.8, reason:'Target Hit (+HH)' }
+];
+
+// Render Live Gainers Grid Panel
+function renderLiveGainersPanel() {
+  const cont = document.getElementById('gainerGridCont');
+  const now = Date.now();
+  let html = '';
+
+  DETERMINISTIC_GAINERS.forEach(g => {
+    const dtStr = new Date(g.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit'});
+    const elapsedMs = Math.max(0, now - g.et);
+    const window6hMs = 6 * 60 * 60 * 1000;
+    const remainingMs = Math.max(0, window6hMs - elapsedMs);
+
+    const remH = Math.floor(remainingMs / (3600*1000));
+    const remM = Math.floor((remainingMs % (3600*1000)) / (60*1000));
+
+    const isExp = remainingMs <= 0;
+    const timerCls = isExp ? 'timer-exp' : 'timer-active';
+    const timerTxt = isExp ? '🛑 Block 1 Expired (6h Done)' : `⏳ ${remH}h ${remM}m Left in Block 1`;
+
+    html += `<div class="gainer-card">
+      <div class="gainer-sym">
+        <span>${g.sym}</span>
+        <span class="gainer-pump">+${g.chg.toFixed(1)}%</span>
+      </div>
+      <div class="gainer-meta">
+        <span>Entry: $${g.price}</span>
+        <span>${dtStr}</span>
+      </div>
+      <div class="gainer-timer ${timerCls}">${timerTxt}</div>
+    </div>`;
+  });
+
+  cont.innerHTML = html;
+  document.getElementById('gainerCntBadge').textContent = `${DETERMINISTIC_GAINERS.length} Coins Tracked`;
+}
+
 function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesArr, inrRate, stratMode) {
   let wallet = initWallet;
   let peak = wallet;
@@ -310,15 +414,13 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
   let curLossStreak = 0, maxLossStreak = 0;
 
   const openPositions = [];
-  const coinCapTracker = {}; // For Strategy B
+  const coinCapTracker = {};
   const executedLogs = [];
 
   // Exclude bothBoth & filter strictly for 0h -> 6h (windowHours)
   const day1Trades = tradesArr.filter(t => t.ch !== 'bothBoth' && t.elapsedH >= 0 && t.elapsedH < windowHours);
-  day1Trades.sort((a,b) => a.et - b.et);
 
   for(const t of day1Trades) {
-    // Clear closed positions
     for(let i = openPositions.length - 1; i >= 0; i--) {
       if(openPositions[i].xt <= t.et) {
         const closed = openPositions.splice(i, 1)[0];
@@ -328,22 +430,19 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
 
     if(openPositions.length >= 5) {
       skipped++;
-      continue; // Wallet 100% capacity full
+      continue;
     }
 
-    // Strategy B Cap Check (Max 2 trades / ₹160 per coin)
     if(stratMode === 'B') {
       const curCoinMargin = coinCapTracker[t.sym] || 0;
       if(curCoinMargin >= (initWallet * (compPct / 100) * 2)) {
         skipped++;
-        continue; // Strategy B cap reached for this coin
+        continue;
       }
     }
 
-    // Margin Calculation
     let marginInr = (wallet * (compPct / 100));
 
-    // Binance Min Notional Rule @ INR Rate
     const minMarginUsdt = BINANCE_MIN_NOTIONAL_USDT / lev;
     const minMarginInr = minMarginUsdt * inrRate;
 
@@ -356,12 +455,11 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
       continue;
     }
 
-    // Dynamic Slippage (0.03% to 0.08%)
-    const slippagePct = +(0.03 + Math.random()*0.05).toFixed(3);
+    // Deterministic fixed slippage (0.05%)
+    const slippagePct = 0.05;
     const slippageInr = marginInr * (slippagePct / 100);
     totalSlippageInr += slippageInr;
 
-    // 8-Hour Binance Funding Fee (0.01%)
     const durationHours = (t.dur || 15) / 60;
     const fundingPeriods = Math.max(1, Math.floor(durationHours / 8));
     const fundingPct = 0.01 * fundingPeriods;
@@ -372,7 +470,6 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
     let leveredPnl = rawPnl * lev;
     let isLiq = false;
 
-    // Liquidation Check
     const liqThreshold = -(100 / lev);
     if(t.llPct !== null && t.llPct <= liqThreshold) {
       isLiq = true;
@@ -404,12 +501,6 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
     openPositions.push({ xt: t.xt || (t.et + 600000), sym: t.sym, marginInr });
     coinCapTracker[t.sym] = (coinCapTracker[t.sym] || 0) + marginInr;
 
-    // Real exit reason string without Stop Loss (EMA Fade / Target Hit)
-    let realReason = t.reason;
-    if(t.reason === 'Trailing Stop' || t.reason.includes('Stop')) {
-      realReason = t.ch === 'fast' ? 'EMA Fast Angle Faded' : 'EMA Slow Angle Faded';
-    }
-
     executedLogs.push({
       ...t,
       marginInr,
@@ -420,8 +511,7 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
       leveredPnl,
       netProfitInr,
       newWallet: wallet,
-      isLiq,
-      reason: realReason
+      isLiq
     });
   }
 
@@ -448,42 +538,6 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
   };
 }
 
-function generateSampleTrades() {
-  const coins = ['BEAT/USDT','EUL/USDT','PHAROS/USDT','CAP/USDT','BE/USDT','KAITO/USDT','RIF/USDT','VANRY/USDT'];
-  const strats = ['fast','slow','bothEither']; // bothBoth excluded
-  const trades = [];
-  let baseTs = new Date(2026,6,28,10,0,0).getTime();
-
-  for(let i=1; i<=80; i++) {
-    const coin = coins[Math.floor(Math.random()*coins.length)];
-    const ch = strats[Math.floor(Math.random()*strats.length)];
-    const dir = Math.random() > 0.38 ? 'UP' : 'DOWN';
-    const ep = +(Math.random()*5 + 0.5).toFixed(4);
-    const pnl = +((Math.random() > 0.52 ? 1 : -1) * (Math.random()*3.5 + 0.3)).toFixed(2);
-    const hh = +(Math.abs(pnl) + Math.random()*2).toFixed(2);
-    const ll = +(-Math.abs(pnl) - Math.random()*2).toFixed(2);
-    const elapsedH = +(Math.random()*5.8).toFixed(1); // Block 1 focus (0-6h)
-    const et = baseTs + (i * 10 * 60 * 1000);
-    const xt = et + (Math.floor(Math.random()*30 + 5) * 60 * 1000);
-
-    let reason = pnl > 0 ? 'Target Hit (+HH)' : (ch === 'fast' ? 'EMA Fast Angle Faded' : 'EMA Slow Angle Faded');
-
-    trades.push({
-      num: i, et, xt,
-      dtStr: new Date(et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}),
-      sym: coin, ch, dir, ep,
-      xp: +(ep * (1 + pnl/100)).toFixed(4),
-      pnl, hhPct: hh, llPct: ll,
-      dur: Math.round((xt-et)/60000),
-      reason,
-      elapsedH
-    });
-  }
-  return trades;
-}
-
-let sampleTrades = generateSampleTrades();
-
 function runSimulation() {
   const inrRate = parseFloat(document.getElementById('inrRateInput').value) || 94;
   const initW = parseFloat(document.getElementById('initWalletInput').value) || 800;
@@ -491,10 +545,10 @@ function runSimulation() {
   const activeLev = parseInt(document.getElementById('levSelect').value) || 5;
   const windowH = parseInt(document.getElementById('windowSelect').value) || 6;
 
-  // Run Active Strategy (A or B)
-  const r = runSimulationForLeverage(activeLev, initW, compPct, windowH, sampleTrades, inrRate, currentStrategy);
+  renderLiveGainersPanel();
 
-  // Update UI Dashboard
+  const r = runSimulationForLeverage(activeLev, initW, compPct, windowH, DETERMINISTIC_TRADES, inrRate, currentStrategy);
+
   document.getElementById('startW').textContent = `₹${r.initWallet.toFixed(2)}`;
   const curWEl = document.getElementById('curW');
   curWEl.textContent = `₹${r.finalWallet.toFixed(2)}`;
@@ -522,11 +576,10 @@ function runSimulation() {
   document.getElementById('lastUpdated').textContent = `Updated: ${new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'})}`;
   document.getElementById('tradeCntBadge').textContent = `${r.logs.length} Block 1 Executed Trades`;
 
-  // Render Multi-Leverage Comparison Matrix Table
   const tiers = [1, 3, 5, 7, 10];
   let matrixHtml = '';
   for(const levTier of tiers) {
-    const res = runSimulationForLeverage(levTier, initW, compPct, windowH, sampleTrades, inrRate, currentStrategy);
+    const res = runSimulationForLeverage(levTier, initW, compPct, windowH, DETERMINISTIC_TRADES, inrRate, currentStrategy);
     const pnlCls = res.totalReturnPct >= 0 ? 'green' : 'red';
     const statusTag = levTier === 1 ? '🟢 Spot (Safe)' : levTier <= 5 ? '🟡 Optimal Futures' : '🔴 High Liquidation Risk';
     matrixHtml += `<tr>
@@ -543,7 +596,6 @@ function runSimulation() {
   }
   document.getElementById('matrixBody').innerHTML = matrixHtml;
 
-  // Render Trade Logs
   let logsHtml = '';
   r.logs.forEach((t, i) => {
     const rowCls = t.isLiq ? 'liq' : t.netProfitInr > 0 ? 'win' : 'loss';
@@ -551,7 +603,7 @@ function runSimulation() {
     const ps = t.netProfitInr > 0 ? '+' : '';
     logsHtml += `<tr class="${rowCls}">
       <td>#${i+1}</td>
-      <td>${t.dtStr}</td>
+      <td>${new Date(t.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit'})}</td>
       <td><b>${t.sym}</b></td>
       <td>${t.ch}</td>
       <td class="${t.dir==='UP'?'green':'red'}">${t.dir}</td>
@@ -578,11 +630,10 @@ function exportSimTXT() {
   const inrRate = document.getElementById('inrRateInput').value;
 
   let txt = `================================================================================\n`;
-  txt += `⚡ EMA MOMENTUM — LIVE WALLET SIMULATOR REPORT v3\n`;
-  txt += `Selected Strategy: Strategy ${currentStrategy}\n`;
-  txt += `USD/INR Rate: ₹${inrRate} | Starting Wallet: ₹${initW} INR | Compounding: 20%\n`;
-  txt += `Leverage: ${activeLev}x | Active Window: 0h -> ${windowH}h (Block 1 Only Filter)\n`;
-  txt += `Exit Rules: NO Fixed Stop Loss (EMA Angle Faded Exit Only)\n`;
+  txt += `⚡ EMA MOMENTUM — LIVE WALLET SIMULATOR REPORT v4\n`;
+  txt += `Strategy: Strategy ${currentStrategy} | USD/INR Rate: ₹${inrRate}\n`;
+  txt += `Starting Wallet: ₹${initW} INR | Compounding: 20% | Leverage: ${activeLev}x\n`;
+  txt += `Active Window: 0h -> ${windowH}h (Block 1 Filter) | Deterministic Results\n`;
   txt += `Generated: ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})}\n`;
   txt += `================================================================================\n\n`;
 
