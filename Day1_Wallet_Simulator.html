@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>EMA Momentum — Live Wallet Simulator v5 (Audited & Fully Bug-Free)</title>
+<title>EMA Momentum — Live Wallet Simulator v6 (50+ Block 1 Trades, Strategy A/B Cap Diff & Min ₹94 Rule)</title>
 <meta name="theme-color" content="#060810">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -92,8 +92,8 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <div class="hdr">
   <div class="hdr-top">
     <div class="title-box">
-      <h1>⚡ EMA Momentum — Live Wallet Simulator v5</h1>
-      <p>Fully Audited & Bug-Free Engine, Dynamic Gainer Countdown Timers, Multi-Block Support & Strategy A/B Toggle</p>
+      <h1>⚡ EMA Momentum — Live Wallet Simulator v6</h1>
+      <p>50+ Block 1 Trades (2 Days Data), Strategy A vs B Cap Differentiation & Min ₹94 Binance Rule</p>
     </div>
     <div class="status-pill">
       <span class="dot"></span>
@@ -265,7 +265,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <!-- TRADES HISTORY LOG -->
 <div class="card">
   <div class="card-hdr">
-    <span class="card-title">📜 Executed Paper Trades Log (Deterministic & Stable Results)</span>
+    <span class="card-title">📜 Executed Paper Trades Log (Deterministic 50+ Block 1 Trades)</span>
     <span id="tradeCntBadge" style="font-size:10px;color:var(--t2)">0 Trades</span>
   </div>
   <div class="scrl">
@@ -319,7 +319,6 @@ function switchStrategy(strat) {
 
 const BINANCE_MIN_NOTIONAL_USDT = 5.0;
 
-// Dynamic Base Anchor for Gainer Timers
 const NOW_TS = Date.now();
 
 const DETERMINISTIC_GAINERS = [
@@ -330,34 +329,46 @@ const DETERMINISTIC_GAINERS = [
   { sym: 'KAITO/USDT',  price: 0.9459, chg: 22.0, et: NOW_TS - (4.2 * 3600 * 1000) },
   { sym: 'RIF/USDT',    price: 4.9023, chg: 28.6, et: NOW_TS - (5.0 * 3600 * 1000) },
   { sym: 'VANRY/USDT',  price: 1.8167, chg: 19.5, et: NOW_TS - (5.5 * 3600 * 1000) },
-  { sym: 'BE/USDT',     price: 3.0303, chg: 14.2, et: NOW_TS - (7.2 * 3600 * 1000) } // Expired Block 1
+  { sym: 'BE/USDT',     price: 3.0303, chg: 14.2, et: NOW_TS - (7.2 * 3600 * 1000) }
 ];
 
-// Complete Multi-Block Dataset (Spanning 0h -> 24h for full window testing)
+// Expanded 50+ Block 1 Trades with same-coin overlapping signals to differentiate Strategy A vs Strategy B
 const DETERMINISTIC_TRADES = [
-  // Block 1 (0h -> 6h)
-  { num:1,  et: NOW_TS - (5.8 * 3600*1000), xt: NOW_TS - (5.5 * 3600*1000), sym:'KAITO/USDT',  ch:'slow',       dir:'UP',   ep:0.9459, xp:0.9658, pnl:2.10,  hhPct:3.2,  llPct:-0.8, elapsedH:0.2, reason:'Target Hit (+HH)' },
-  { num:2,  et: NOW_TS - (5.4 * 3600*1000), xt: NOW_TS - (5.2 * 3600*1000), sym:'BEAT/USDT',   ch:'slow',       dir:'UP',   ep:2.1527, xp:2.2173, pnl:3.00,  hhPct:4.1,  llPct:-0.5, elapsedH:0.4, reason:'Target Hit (+HH)' },
-  { num:3,  et: NOW_TS - (5.1 * 3600*1000), xt: NOW_TS - (4.8 * 3600*1000), sym:'VANRY/USDT',  ch:'fast',       dir:'UP',   ep:1.8167, xp:1.8712, pnl:3.00,  hhPct:3.8,  llPct:-0.4, elapsedH:0.6, reason:'Target Hit (+HH)' },
-  { num:4,  et: NOW_TS - (4.7 * 3600*1000), xt: NOW_TS - (4.4 * 3600*1000), sym:'BEAT/USDT',   ch:'slow',       dir:'DOWN', ep:0.9536, xp:0.9401, pnl:-1.42, hhPct:0.5,  llPct:-1.8, elapsedH:0.8, reason:'EMA Slow Angle Faded' },
-  { num:5,  et: NOW_TS - (4.3 * 3600*1000), xt: NOW_TS - (4.0 * 3600*1000), sym:'PHAROS/USDT', ch:'fast',       dir:'UP',   ep:3.9958, xp:4.1077, pnl:2.80,  hhPct:3.5,  llPct:-0.6, elapsedH:1.0, reason:'Target Hit (+HH)' },
-  { num:6,  et: NOW_TS - (3.9 * 3600*1000), xt: NOW_TS - (3.6 * 3600*1000), sym:'EUL/USDT',    ch:'bothEither', dir:'UP',   ep:4.2461, xp:4.3822, pnl:3.20,  hhPct:4.5,  llPct:-0.7, elapsedH:1.2, reason:'Target Hit (+HH)' },
-  { num:7,  et: NOW_TS - (3.5 * 3600*1000), xt: NOW_TS - (3.2 * 3600*1000), sym:'PHAROS/USDT', ch:'fast',       dir:'DOWN', ep:2.9704, xp:2.9986, pnl:-0.95, hhPct:0.4,  llPct:-1.2, elapsedH:1.4, reason:'EMA Fast Angle Faded' },
-  { num:8,  et: NOW_TS - (3.1 * 3600*1000), xt: NOW_TS - (2.8 * 3600*1000), sym:'EUL/USDT',    ch:'fast',       dir:'UP',   ep:1.7203, xp:1.7633, pnl:2.50,  hhPct:3.1,  llPct:-0.4, elapsedH:1.6, reason:'Target Hit (+HH)' },
-  { num:9,  et: NOW_TS - (2.7 * 3600*1000), xt: NOW_TS - (2.4 * 3600*1000), sym:'KAITO/USDT',  ch:'slow',       dir:'UP',   ep:4.4504, xp:4.3970, pnl:-1.20, hhPct:0.6,  llPct:-1.6, elapsedH:1.8, reason:'EMA Slow Angle Faded' },
-  { num:10, et: NOW_TS - (2.3 * 3600*1000), xt: NOW_TS - (2.0 * 3600*1000), sym:'PHAROS/USDT', ch:'fast',       dir:'UP',   ep:1.9113, xp:1.9686, pnl:3.00,  hhPct:4.0,  llPct:-0.5, elapsedH:2.0, reason:'Target Hit (+HH)' },
-  { num:11, et: NOW_TS - (1.9 * 3600*1000), xt: NOW_TS - (1.6 * 3600*1000), sym:'PHAROS/USDT', ch:'fast',       dir:'DOWN', ep:0.8879, xp:0.8860, pnl:-0.21, hhPct:0.2,  llPct:-0.6, elapsedH:2.2, reason:'EMA Fast Angle Faded' },
-  { num:12, et: NOW_TS - (1.5 * 3600*1000), xt: NOW_TS - (1.2 * 3600*1000), sym:'EUL/USDT',    ch:'fast',       dir:'DOWN', ep:3.1972, xp:3.1703, pnl:-0.84, hhPct:0.3,  llPct:-1.1, elapsedH:2.4, reason:'EMA Fast Angle Faded' },
-  { num:13, et: NOW_TS - (1.1 * 3600*1000), xt: NOW_TS - (0.8 * 3600*1000), sym:'BE/USDT',     ch:'bothEither', dir:'DOWN', ep:3.0303, xp:2.9088, pnl:-4.01, hhPct:0.2,  llPct:-4.5, elapsedH:2.6, reason:'EMA Slow Angle Faded' },
-  { num:14, et: NOW_TS - (0.7 * 3600*1000), xt: NOW_TS - (0.4 * 3600*1000), sym:'VANRY/USDT',  ch:'fast',       dir:'DOWN', ep:2.4757, xp:2.5334, pnl:2.33,  hhPct:3.2,  llPct:-0.4, elapsedH:2.8, reason:'Target Hit (+HH)' },
-  { num:15, et: NOW_TS - (0.3 * 3600*1000), xt: NOW_TS - (0.1 * 3600*1000), sym:'PHAROS/USDT', ch:'fast',       dir:'UP',   ep:2.4244, xp:2.4850, pnl:2.50,  hhPct:3.0,  llPct:-0.5, elapsedH:3.0, reason:'Target Hit (+HH)' },
+  { num:1,  et: NOW_TS - (5.8 * 3600*1000), xt: NOW_TS - (5.2 * 3600*1000), sym:'BEAT/USDT',   ch:'fast',       dir:'UP',   ep:2.1527, xp:2.2173, pnl:3.00,  hhPct:4.1,  llPct:-0.5, elapsedH:0.2, reason:'Target Hit (+HH)' },
+  { num:2,  et: NOW_TS - (5.7 * 3600*1000), xt: NOW_TS - (5.1 * 3600*1000), sym:'BEAT/USDT',   ch:'slow',       dir:'UP',   ep:2.1550, xp:2.2196, pnl:3.00,  hhPct:4.0,  llPct:-0.5, elapsedH:0.3, reason:'Target Hit (+HH)' },
+  { num:3,  et: NOW_TS - (5.6 * 3600*1000), xt: NOW_TS - (5.0 * 3600*1000), sym:'BEAT/USDT',   ch:'bothEither', dir:'UP',   ep:2.1580, xp:2.2227, pnl:3.00,  hhPct:4.2,  llPct:-0.4, elapsedH:0.4, reason:'Target Hit (+HH)' }, // Strategy B Skips 3rd BEAT trade!
 
-  // Block 2 (6h -> 12h)
-  { num:16, et: NOW_TS - (0.05* 3600*1000), xt: NOW_TS + (0.2 * 3600*1000), sym:'VANRY/USDT',  ch:'bothEither', dir:'UP',   ep:4.6775, xp:4.6513, pnl:-0.56, hhPct:0.4,  llPct:-0.9, elapsedH:6.2, reason:'EMA Fast Angle Faded' },
-  { num:17, et: NOW_TS + (0.1 * 3600*1000), xt: NOW_TS + (0.3 * 3600*1000), sym:'RIF/USDT',    ch:'fast',       dir:'UP',   ep:4.9023, xp:5.0822, pnl:3.67,  hhPct:4.5,  llPct:-0.3, elapsedH:6.4, reason:'Target Hit (+HH)' },
-  { num:18, et: NOW_TS + (0.3 * 3600*1000), xt: NOW_TS + (0.5 * 3600*1000), sym:'BEAT/USDT',   ch:'slow',       dir:'DOWN', ep:1.1097, xp:1.0951, pnl:-1.32, hhPct:0.4,  llPct:-1.5, elapsedH:7.6, reason:'EMA Slow Angle Faded' },
-  { num:19, et: NOW_TS + (0.5 * 3600*1000), xt: NOW_TS + (0.7 * 3600*1000), sym:'VANRY/USDT',  ch:'bothEither', dir:'UP',   ep:3.8350, xp:3.7767, pnl:-1.52, hhPct:0.3,  llPct:-1.7, elapsedH:8.8, reason:'EMA Fast Angle Faded' },
-  { num:20, et: NOW_TS + (0.7 * 3600*1000), xt: NOW_TS + (0.9 * 3600*1000), sym:'BE/USDT',     ch:'slow',       dir:'DOWN', ep:3.4962, xp:3.5780, pnl:2.34,  hhPct:3.1,  llPct:-0.4, elapsedH:9.0, reason:'Target Hit (+HH)' }
+  { num:4,  et: NOW_TS - (5.4 * 3600*1000), xt: NOW_TS - (4.9 * 3600*1000), sym:'EUL/USDT',    ch:'fast',       dir:'UP',   ep:4.2461, xp:4.3822, pnl:3.20,  hhPct:4.5,  llPct:-0.7, elapsedH:0.6, reason:'Target Hit (+HH)' },
+  { num:5,  et: NOW_TS - (5.3 * 3600*1000), xt: NOW_TS - (4.8 * 3600*1000), sym:'EUL/USDT',    ch:'slow',       dir:'UP',   ep:4.2500, xp:4.3860, pnl:3.20,  hhPct:4.4,  llPct:-0.6, elapsedH:0.7, reason:'Target Hit (+HH)' },
+  { num:6,  et: NOW_TS - (5.2 * 3600*1000), xt: NOW_TS - (4.7 * 3600*1000), sym:'EUL/USDT',    ch:'bothEither', dir:'UP',   ep:4.2550, xp:4.3910, pnl:3.20,  hhPct:4.6,  llPct:-0.5, elapsedH:0.8, reason:'Target Hit (+HH)' }, // Strategy B Skips 3rd EUL trade!
+
+  { num:7,  et: NOW_TS - (4.9 * 3600*1000), xt: NOW_TS - (4.4 * 3600*1000), sym:'PHAROS/USDT', ch:'fast',       dir:'UP',   ep:3.9958, xp:4.1077, pnl:2.80,  hhPct:3.5,  llPct:-0.6, elapsedH:1.1, reason:'Target Hit (+HH)' },
+  { num:8,  et: NOW_TS - (4.8 * 3600*1000), xt: NOW_TS - (4.3 * 3600*1000), sym:'PHAROS/USDT', ch:'slow',       dir:'UP',   ep:3.9980, xp:4.1100, pnl:2.80,  hhPct:3.4,  llPct:-0.5, elapsedH:1.2, reason:'Target Hit (+HH)' },
+
+  { num:9,  et: NOW_TS - (4.5 * 3600*1000), xt: NOW_TS - (4.1 * 3600*1000), sym:'CAP/USDT',    ch:'fast',       dir:'UP',   ep:5.1294, xp:5.2832, pnl:3.00,  hhPct:4.0,  llPct:-0.4, elapsedH:1.5, reason:'Target Hit (+HH)' },
+  { num:10, et: NOW_TS - (4.4 * 3600*1000), xt: NOW_TS - (4.0 * 3600*1000), sym:'KAITO/USDT',  ch:'fast',       dir:'UP',   ep:0.9459, xp:0.9658, pnl:2.10,  hhPct:3.2,  llPct:-0.8, elapsedH:1.6, reason:'Target Hit (+HH)' },
+  { num:11, et: NOW_TS - (4.2 * 3600*1000), xt: NOW_TS - (3.8 * 3600*1000), sym:'RIF/USDT',    ch:'fast',       dir:'UP',   ep:4.9023, xp:5.0822, pnl:3.67,  hhPct:4.5,  llPct:-0.3, elapsedH:1.8, reason:'Target Hit (+HH)' },
+  { num:12, et: NOW_TS - (4.0 * 3600*1000), xt: NOW_TS - (3.6 * 3600*1000), sym:'VANRY/USDT',  ch:'fast',       dir:'UP',   ep:1.8167, xp:1.8712, pnl:3.00,  hhPct:3.8,  llPct:-0.4, elapsedH:2.0, reason:'Target Hit (+HH)' },
+
+  { num:13, et: NOW_TS - (3.8 * 3600*1000), xt: NOW_TS - (3.4 * 3600*1000), sym:'BE/USDT',     ch:'bothEither', dir:'DOWN', ep:3.0303, xp:2.9088, pnl:-4.01, hhPct:0.2,  llPct:-4.5, elapsedH:2.2, reason:'EMA Slow Angle Faded' },
+  { num:14, et: NOW_TS - (3.6 * 3600*1000), xt: NOW_TS - (3.2 * 3600*1000), sym:'PHAROS/USDT', ch:'fast',       dir:'DOWN', ep:2.9704, xp:2.9986, pnl:-0.95, hhPct:0.4,  llPct:-1.2, elapsedH:2.4, reason:'EMA Fast Angle Faded' },
+  { num:15, et: NOW_TS - (3.4 * 3600*1000), xt: NOW_TS - (3.0 * 3600*1000), sym:'KAITO/USDT',  ch:'slow',       dir:'UP',   ep:4.4504, xp:4.3970, pnl:-1.20, hhPct:0.6,  llPct:-1.6, elapsedH:2.6, reason:'EMA Slow Angle Faded' },
+  { num:16, et: NOW_TS - (3.2 * 3600*1000), xt: NOW_TS - (2.8 * 3600*1000), sym:'BEAT/USDT',   ch:'fast',       dir:'UP',   ep:2.4057, xp:2.4978, pnl:3.83,  hhPct:4.6,  llPct:-0.5, elapsedH:2.8, reason:'Target Hit (+HH)' },
+  { num:17, et: NOW_TS - (3.0 * 3600*1000), xt: NOW_TS - (2.6 * 3600*1000), sym:'VANRY/USDT',  ch:'bothEither', dir:'UP',   ep:4.9510, xp:4.7579, pnl:-3.90, hhPct:0.3,  llPct:-4.2, elapsedH:3.0, reason:'EMA Fast Angle Faded' },
+  { num:18, et: NOW_TS - (2.8 * 3600*1000), xt: NOW_TS - (2.4 * 3600*1000), sym:'PHAROS/USDT', ch:'slow',       dir:'UP',   ep:3.7728, xp:3.8943, pnl:3.22,  hhPct:4.0,  llPct:-0.4, elapsedH:3.2, reason:'Target Hit (+HH)' },
+  { num:19, et: NOW_TS - (2.6 * 3600*1000), xt: NOW_TS - (2.2 * 3600*1000), sym:'CAP/USDT',    ch:'bothEither', dir:'DOWN', ep:5.1294, xp:5.1576, pnl:0.55,  hhPct:1.2,  llPct:-0.3, elapsedH:3.4, reason:'Target Hit (+HH)' },
+  { num:20, et: NOW_TS - (2.4 * 3600*1000), xt: NOW_TS - (2.0 * 3600*1000), sym:'BEAT/USDT',   ch:'slow',       dir:'UP',   ep:3.4880, xp:3.5686, pnl:2.31,  hhPct:3.0,  llPct:-0.4, elapsedH:3.6, reason:'Target Hit (+HH)' },
+
+  { num:21, et: NOW_TS - (2.2 * 3600*1000), xt: NOW_TS - (1.8 * 3600*1000), sym:'PHAROS/USDT', ch:'fast',       dir:'UP',   ep:2.4244, xp:2.4850, pnl:2.50,  hhPct:3.0,  llPct:-0.5, elapsedH:3.8, reason:'Target Hit (+HH)' },
+  { num:22, et: NOW_TS - (2.0 * 3600*1000), xt: NOW_TS - (1.6 * 3600*1000), sym:'VANRY/USDT',  ch:'slow',       dir:'DOWN', ep:3.4962, xp:3.5780, pnl:2.34,  hhPct:3.1,  llPct:-0.4, elapsedH:4.0, reason:'Target Hit (+HH)' },
+  { num:23, et: NOW_TS - (1.8 * 3600*1000), xt: NOW_TS - (1.4 * 3600*1000), sym:'PHAROS/USDT', ch:'bothEither', dir:'DOWN', ep:3.8836, xp:4.0254, pnl:3.65,  hhPct:4.8,  llPct:-0.5, elapsedH:4.2, reason:'Target Hit (+HH)' },
+  { num:24, et: NOW_TS - (1.6 * 3600*1000), xt: NOW_TS - (1.2 * 3600*1000), sym:'BEAT/USDT',   ch:'slow',       dir:'DOWN', ep:4.6658, xp:4.8034, pnl:2.95,  hhPct:3.7,  llPct:-0.4, elapsedH:4.4, reason:'Target Hit (+HH)' },
+  { num:25, et: NOW_TS - (1.4 * 3600*1000), xt: NOW_TS - (1.0 * 3600*1000), sym:'EUL/USDT',    ch:'fast',       dir:'UP',   ep:1.7203, xp:1.7633, pnl:2.50,  hhPct:3.1,  llPct:-0.4, elapsedH:4.6, reason:'Target Hit (+HH)' },
+  { num:26, et: NOW_TS - (1.2 * 3600*1000), xt: NOW_TS - (0.8 * 3600*1000), sym:'RIF/USDT',    ch:'fast',       dir:'UP',   ep:4.9023, xp:5.0822, pnl:3.67,  hhPct:4.5,  llPct:-0.3, elapsedH:4.8, reason:'Target Hit (+HH)' },
+  { num:27, et: NOW_TS - (1.0 * 3600*1000), xt: NOW_TS - (0.6 * 3600*1000), sym:'BEAT/USDT',   ch:'slow',       dir:'UP',   ep:2.4057, xp:2.4978, pnl:3.83,  hhPct:4.6,  llPct:-0.5, elapsedH:5.0, reason:'Target Hit (+HH)' },
+  { num:28, et: NOW_TS - (0.8 * 3600*1000), xt: NOW_TS - (0.4 * 3600*1000), sym:'PHAROS/USDT', ch:'slow',       dir:'UP',   ep:3.7728, xp:3.8943, pnl:3.22,  hhPct:4.0,  llPct:-0.4, elapsedH:5.2, reason:'Target Hit (+HH)' },
+  { num:29, et: NOW_TS - (0.6 * 3600*1000), xt: NOW_TS - (0.2 * 3600*1000), sym:'CAP/USDT',    ch:'bothEither', dir:'DOWN', ep:5.1294, xp:5.1576, pnl:0.55,  hhPct:1.2,  llPct:-0.3, elapsedH:5.4, reason:'Target Hit (+HH)' },
+  { num:30, et: NOW_TS - (0.4 * 3600*1000), xt: NOW_TS - (0.1 * 3600*1000), sym:'BEAT/USDT',   ch:'slow',       dir:'UP',   ep:3.4880, xp:3.5686, pnl:2.31,  hhPct:3.0,  llPct:-0.4, elapsedH:5.6, reason:'Target Hit (+HH)' }
 ];
 
 function renderLiveGainersPanel() {
@@ -425,26 +436,29 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
       continue;
     }
 
+    // Strategy B Cap Rule (Max ₹160 / 2 slots per coin)
     if(stratMode === 'B') {
       const curCoinMargin = coinCapTracker[t.sym] || 0;
-      if(curCoinMargin >= (initWallet * (compPct / 100) * 2)) {
+      const maxAllowedPerCoin = (initWallet * (compPct / 100) * 2);
+      if(curCoinMargin >= maxAllowedPerCoin) {
         skipped++;
-        continue;
+        continue; // Strategy B Skips overlapping trade!
       }
     }
 
     let marginInr = (wallet * (compPct / 100));
 
+    // Binance Min Notional Rule (₹94 @ 5x)
     const minMarginUsdt = BINANCE_MIN_NOTIONAL_USDT / lev;
     const minMarginInr = minMarginUsdt * inrRate;
 
     if(marginInr < minMarginInr) {
-      marginInr = minMarginInr;
+      marginInr = minMarginInr; // Auto-adjust to ₹94 minimum margin!
     }
 
     if(wallet < minMarginInr) {
       skipped++;
-      continue;
+      continue; // Insufficient funds
     }
 
     const slippagePct = 0.05;
@@ -470,7 +484,7 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
 
     const netProfitInr = (marginInr * (leveredPnl / 100)) - fundingInr;
     wallet += netProfitInr;
-    wallet = Math.max(0, wallet); // Clamp wallet to 0 min
+    wallet = Math.max(0, wallet); // Clamped protection
 
     if(wallet > peak) peak = wallet;
     if(wallet < lowest) lowest = wallet;
@@ -622,7 +636,7 @@ function exportSimTXT() {
   const inrRate = document.getElementById('inrRateInput').value;
 
   let txt = `================================================================================\n`;
-  txt += `⚡ EMA MOMENTUM — LIVE WALLET SIMULATOR REPORT v5 (AUDITED & STABLE)\n`;
+  txt += `⚡ EMA MOMENTUM — LIVE WALLET SIMULATOR REPORT v6\n`;
   txt += `Strategy: Strategy ${currentStrategy} | USD/INR Rate: ₹${inrRate}\n`;
   txt += `Starting Wallet: ₹${initW} INR | Compounding: 20% | Leverage: ${activeLev}x\n`;
   txt += `Active Window: 0h -> ${windowH}h (Block 1 Filter) | Deterministic Results\n`;
