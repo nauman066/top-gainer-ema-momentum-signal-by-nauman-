@@ -219,21 +219,31 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
     </div>
   </div>
 
-  <!-- PDF EXPORT CARD IN LIVE TAB -->
+  <!-- DEDICATED DAY 1 & 6-HOUR BLOCKS EXPORT CARD (LIVE TAB) -->
+  <div class="card" style="border:1px solid rgba(124,77,255,0.4);background:linear-gradient(135deg,rgba(124,77,255,0.12),rgba(0,230,118,0.12))">
+    <div class="card-hdr" style="border-bottom:1px solid rgba(124,77,255,0.2)">
+      <span class="card-title" style="color:#a78bfa;font-size:12px;font-weight:800">📊 DAY 1 & 6-HOUR BLOCK PARTITION REPORTS</span>
+      <span style="font-size:10px;color:var(--green);font-weight:700">4 Blocks (0-6h, 6-12h, 12-18h, 18-24h)</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;padding-top:4px">
+      <button class="btn" onclick="downloadDay1PDF()" style="flex:1;min-width:130px;padding:9px 12px;font-size:12px;font-weight:800;background:linear-gradient(135deg,#00e676,#00b0ff);color:#000;border:none;border-radius:10px;cursor:pointer;box-shadow:0 0 12px rgba(0,230,118,0.3)" title="Download Day 1 Trades as PDF">🥇 Day 1 PDF</button>
+      <button class="btn" onclick="downloadDay1TXT()" style="flex:1;min-width:130px;padding:9px 12px;font-size:12px;font-weight:800;background:linear-gradient(135deg,#00e676,#7c4dff);color:#fff;border:none;border-radius:10px;cursor:pointer;box-shadow:0 0 12px rgba(124,77,255,0.3)" title="Download Day 1 Trades as TXT">🥇 Day 1 TXT</button>
+      <button class="btn" onclick="downloadDay1Blocks6HPDF()" style="flex:1;min-width:150px;padding:9px 12px;font-size:12px;font-weight:800;background:linear-gradient(135deg,#ff9800,#ff1744);color:#fff;border:none;border-radius:10px;cursor:pointer;box-shadow:0 0 12px rgba(255,152,0,0.3)" title="Print / Save PDF Day 1 6-Hour Block Partitioned Analysis Report">📊 Day 1 — 6H Blocks PDF</button>
+      <button class="btn" onclick="downloadDay1Blocks6HTXT()" style="flex:1;min-width:150px;padding:9px 12px;font-size:12px;font-weight:800;background:linear-gradient(135deg,#7c4dff,#ff9800);color:#fff;border:none;border-radius:10px;cursor:pointer;box-shadow:0 0 12px rgba(124,77,255,0.3)" title="Download Day 1 6-Hour Block Partitioned Analysis Report as TXT">📊 Day 1 — 6H Blocks TXT</button>
+    </div>
+  </div>
+
+  <!-- OTHER PDF/TXT EXPORTS CARD -->
   <div class="card" style="border:1px solid rgba(59,130,246,0.3);background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(16,185,129,0.08))">
     <div class="card-hdr">
-      <span class="card-title" style="color:#60a5fa">📄 PDF Reports & Downloads</span>
-      <span style="font-size:10px;color:var(--t2)">Chronological & Day-Wise</span>
+      <span class="card-title" style="color:#60a5fa">📄 Other History Exports</span>
+      <span style="font-size:10px;color:var(--t2)">All-Time & Date Filtered</span>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px">
       <select id="pdfDateSelLive" onchange="syncPdfDateSel(this.value)" style="flex:1;min-width:140px;background:rgba(255,255,255,0.12);border:1px solid var(--blue);color:var(--t1);padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700">
         <option value="ALL">📚 All-Time History (All Dates)</option>
         <option value="TODAY">📅 Today's Date</option>
       </select>
-      <button class="btn btn-grn btn-sm" onclick="downloadDay1PDF()" style="flex:1;min-width:100px;padding:7px 10px;font-size:11px;font-weight:700" title="Download Day 1 Trades (First 24h per Session) as PDF">🥇 Day 1 PDF</button>
-      <button class="btn btn-grn btn-sm" onclick="downloadDay1TXT()" style="flex:1;min-width:100px;padding:7px 10px;font-size:11px;font-weight:700" title="Download Day 1 Trades (First 24h per Session) as TXT">🥇 Day 1 TXT</button>
-      <button class="btn btn-sec btn-sm" onclick="downloadDay1Blocks6HPDF()" style="flex:1;min-width:120px;padding:7px 10px;font-size:11px;font-weight:700" title="Print / Save PDF Day 1 6-Hour Block Analysis Report">📊 6H Blocks PDF</button>
-      <button class="btn btn-sec btn-sm" onclick="downloadDay1Blocks6HTXT()" style="flex:1;min-width:120px;padding:7px 10px;font-size:11px;font-weight:700" title="Download Day 1 6-Hour Block Analysis Report as TXT">📊 6H Blocks TXT</button>
       <button class="btn btn-blu btn-sm" onclick="downloadDailyPDF()" style="flex:1;min-width:100px;padding:7px 10px;font-size:11px;font-weight:700">📅 Selected PDF</button>
       <button class="btn btn-grn btn-sm" onclick="downloadFullPDF()" style="flex:1;min-width:100px;padding:7px 10px;font-size:11px;font-weight:700">📚 All-Time PDF</button>
       <button class="btn btn-or btn-sm" onclick="downloadTXTReport()" style="flex:1;min-width:100px;padding:7px 10px;font-size:11px;font-weight:700" title="Download 100% of all signals as a TXT file">📄 Download TXT</button>
@@ -254,35 +264,44 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 
 <!-- PAGE: HISTORY -->
 <div class="pg" id="pg-history">
+  <!-- DEDICATED DAY 1 & 6-HOUR BLOCKS EXPORT CARD (HISTORY TAB) -->
+  <div class="card" style="border:1px solid rgba(124,77,255,0.4);background:linear-gradient(135deg,rgba(124,77,255,0.12),rgba(0,230,118,0.12));margin-bottom:12px">
+    <div class="card-hdr" style="border-bottom:1px solid rgba(124,77,255,0.2)">
+      <span class="card-title" style="color:#a78bfa;font-size:12px;font-weight:800">📊 DAY 1 & 6-HOUR BLOCK PARTITION REPORTS</span>
+      <span style="font-size:10px;color:var(--green);font-weight:700">4 Blocks (0-6h, 6-12h, 12-18h, 18-24h)</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;padding-top:4px">
+      <button class="btn" onclick="downloadDay1PDF()" style="flex:1;min-width:130px;padding:9px 12px;font-size:12px;font-weight:800;background:linear-gradient(135deg,#00e676,#00b0ff);color:#000;border:none;border-radius:10px;cursor:pointer;box-shadow:0 0 12px rgba(0,230,118,0.3)" title="Download Day 1 Trades as PDF">🥇 Day 1 PDF</button>
+      <button class="btn" onclick="downloadDay1TXT()" style="flex:1;min-width:130px;padding:9px 12px;font-size:12px;font-weight:800;background:linear-gradient(135deg,#00e676,#7c4dff);color:#fff;border:none;border-radius:10px;cursor:pointer;box-shadow:0 0 12px rgba(124,77,255,0.3)" title="Download Day 1 Trades as TXT">🥇 Day 1 TXT</button>
+      <button class="btn" onclick="downloadDay1Blocks6HPDF()" style="flex:1;min-width:150px;padding:9px 12px;font-size:12px;font-weight:800;background:linear-gradient(135deg,#ff9800,#ff1744);color:#fff;border:none;border-radius:10px;cursor:pointer;box-shadow:0 0 12px rgba(255,152,0,0.3)" title="Print / Save PDF Day 1 6-Hour Block Partitioned Analysis Report">📊 Day 1 — 6H Blocks PDF</button>
+      <button class="btn" onclick="downloadDay1Blocks6HTXT()" style="flex:1;min-width:150px;padding:9px 12px;font-size:12px;font-weight:800;background:linear-gradient(135deg,#7c4dff,#ff9800);color:#fff;border:none;border-radius:10px;cursor:pointer;box-shadow:0 0 12px rgba(124,77,255,0.3)" title="Download Day 1 6-Hour Block Partitioned Analysis Report as TXT">📊 Day 1 — 6H Blocks TXT</button>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-hdr">
-      <span class="card-title">📜 Trade History</span>
-      <div style="display:flex;gap:6px;align-items:center">
-        <select id="hCoin" onchange="renderHistory()" style="background:rgba(255,255,255,0.1);border:1px solid var(--blue);color:var(--t1);padding:3px 7px;border-radius:7px;font-size:10px;font-weight:700">
+      <span class="card-title">📜 Trade History Filters & Downloads</span>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select id="hCoin" onchange="renderHistory()" style="background:rgba(255,255,255,0.1);border:1px solid var(--blue);color:var(--t1);padding:4px 8px;border-radius:7px;font-size:10px;font-weight:700">
           <option value="ALL">All Coins</option>
         </select>
-        <button class="btn btn-or btn-sm" onclick="downloadCoinPDF()" title="Download PDF for selected coin">🪙 Download Coin PDF</button>
-        <select id="hChan" onchange="renderHistory()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--t1);padding:3px 7px;border-radius:7px;font-size:10px">
+        <button class="btn btn-or btn-sm" onclick="downloadCoinPDF()" title="Download PDF for selected coin">🪙 Coin PDF</button>
+        <select id="hChan" onchange="renderHistory()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--t1);padding:4px 8px;border-radius:7px;font-size:10px">
           <option value="ALL">All Channels</option>
           <option value="fast">Fast Only</option>
           <option value="slow">Slow Only</option>
           <option value="bothEither">Both (Either Exit)</option>
           <option value="bothBoth">Both (Both Exit)</option>
         </select>
-        <select id="pdfDateSel" onchange="syncPdfDateSel(this.value)" style="background:rgba(255,255,255,0.12);border:1px solid var(--blue);color:var(--t1);padding:3px 7px;border-radius:7px;font-size:10px;font-weight:700">
-          <option value="ALL">📚 All-Time History (All Dates)</option>
+        <select id="pdfDateSel" onchange="syncPdfDateSel(this.value)" style="background:rgba(255,255,255,0.12);border:1px solid var(--blue);color:var(--t1);padding:4px 8px;border-radius:7px;font-size:10px;font-weight:700">
+          <option value="ALL">📚 All-Time History</option>
           <option value="TODAY">📅 Today's Date</option>
         </select>
-        <button class="btn btn-grn btn-sm" onclick="downloadDay1PDF()" title="Download Day 1 Trades (First 24h per Session) as PDF">🥇 Day 1 PDF</button>
-        <button class="btn btn-grn btn-sm" onclick="downloadDay1TXT()" title="Download Day 1 Trades (First 24h per Session) as TXT">🥇 Day 1 TXT</button>
-        <button class="btn btn-sec btn-sm" onclick="downloadDay1Blocks6HPDF()" title="Print / Save PDF Day 1 6-Hour Block Analysis Report">📊 6H Blocks PDF</button>
-        <button class="btn btn-sec btn-sm" onclick="downloadDay1Blocks6HTXT()" title="Download Day 1 6-Hour Block Analysis Report as TXT">📊 6H Blocks TXT</button>
         <button class="btn btn-blu btn-sm" onclick="downloadDailyPDF()" title="Download PDF for selected date">📅 Selected PDF</button>
         <button class="btn btn-grn btn-sm" onclick="downloadFullPDF()" title="Download complete all-time history PDF">📚 All-Time PDF</button>
         <button class="btn btn-or btn-sm" onclick="downloadTXTReport()" title="Download complete 100% signals as a TXT file">📄 TXT</button>
         <button class="btn btn-sec btn-sm" onclick="clearHistory()">🗑️</button>
       </div>
-    </div>
     <div id="histCont" class="scrl">
       <div class="empty"><span>📜</span>No trades recorded yet.</div>
     </div>
