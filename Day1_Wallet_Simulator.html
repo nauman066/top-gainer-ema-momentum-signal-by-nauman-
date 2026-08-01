@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>EMA Momentum — Live Wallet Simulator v11 (Exact Binance Pump Timestamp & Offline Recovery)</title>
+<title>EMA Momentum — Live Wallet Simulator v12 (Pine Script Exact Timestamps & Shadow PnL)</title>
 <meta name="theme-color" content="#060810">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
 
-/* RECOVERY GAP BANNER */
+/* RECOVERY BANNER */
 .rec-bar{background:linear-gradient(135deg,rgba(124,77,255,0.25),rgba(0,176,255,0.25));border:1px solid rgba(124,77,255,0.5);border-radius:14px;padding:12px 18px;display:flex;align-items:center;gap:12px;color:#fff;font-size:12px;font-weight:700;box-shadow:0 0 15px rgba(124,77,255,0.3)}
 
 /* STRATEGY TOGGLE CARD */
@@ -69,6 +69,10 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 .w-val{font-size:15px;font-weight:800;font-family:var(--mono)}
 .w-sub{font-size:10px;color:var(--t2);margin-top:3px;font-family:var(--mono)}
 
+/* SKIPPED TRADES SHADOW CARD */
+.skip-card{background:linear-gradient(135deg,rgba(255,214,0,0.1),rgba(255,152,0,0.1));border:1px solid rgba(255,214,0,0.3);border-radius:16px;padding:16px;margin-top:14px}
+.skip-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:8px}
+
 /* TABLES */
 .matrix-table, .trade-table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)}
 .matrix-table th, .trade-table th{background:rgba(255,255,255,0.08);color:var(--t2);padding:8px 10px;text-align:center;font-size:10px;text-transform:uppercase}
@@ -97,8 +101,8 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <div class="hdr">
   <div class="hdr-top">
     <div class="title-box">
-      <h1>⚡ EMA Momentum — Live Wallet Simulator v11</h1>
-      <p>True Binance Pump Timestamp Detection, Transient Offline Gainers & Standby Recovery Sync</p>
+      <h1>⚡ EMA Momentum — Live Wallet Simulator v12</h1>
+      <p>Pine Script Exact Timestamps, Offline Gap Reconstructor & Skipped Trades Shadow PnL Engine</p>
     </div>
     <div class="status-pill">
       <span class="dot"></span>
@@ -114,7 +118,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
   </div>
 </div>
 
-<!-- RECOVERY GAP BANNER (SHOWN WHEN RETURNING FROM OFFLINE) -->
+<!-- RECOVERY BANNER -->
 <div class="rec-bar" id="recBar" style="display:none">
   <span style="font-size:18px">🔄</span>
   <div id="recTxt">Analyzing offline gap... Recovering true pump timestamps & missed Top Gainers from Binance 5m klines!</div>
@@ -255,6 +259,31 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
       <div class="w-sub" id="skipReasonLbl">Margin / Cap Hit</div>
     </div>
   </div>
+
+  <!-- SKIPPED TRADES SHADOW PNL IMPACT CARD -->
+  <div class="skip-card">
+    <div style="font-size:11px;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:0.5px">
+      💡 Skipped Trades Shadow PnL Analysis (What If You Took Skipped Trades?)
+    </div>
+    <div class="skip-grid">
+      <div class="w-card">
+        <div class="w-lbl">Skipped Count</div>
+        <div class="w-val gold" id="skipCntVal">0 Trades</div>
+      </div>
+      <div class="w-card">
+        <div class="w-lbl">Missed Profit</div>
+        <div class="w-val green" id="missedProfitVal">₹0.00</div>
+      </div>
+      <div class="w-card">
+        <div class="w-lbl">Saved Loss</div>
+        <div class="w-val red" id="savedLossVal">₹0.00</div>
+      </div>
+      <div class="w-card">
+        <div class="w-lbl">Net Risk Filter Impact</div>
+        <div class="w-val blue" id="netFilterImpactVal">₹0.00 Net</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- MULTI-LEVERAGE COMPARISON MATRIX -->
@@ -285,10 +314,10 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
   </div>
 </div>
 
-<!-- TRADES HISTORY LOG -->
+<!-- TRADES HISTORY LOG (NEWEST FIRST) -->
 <div class="card">
   <div class="card-hdr">
-    <span class="card-title">📜 Executed Paper Trades Log (True Pump Start Timestamps)</span>
+    <span class="card-title">📜 Executed Paper Trades Log (Sorted Newest First — Exact Candle Timestamps)</span>
     <span id="tradeCntBadge" style="font-size:10px;color:var(--t2)">0 Trades</span>
   </div>
   <div class="scrl">
@@ -331,9 +360,9 @@ const FAST_THR = 12.0, SLOW_THR = 8.0;
 const STABLE = ['USDC','BUSD','FDUSD','TUSD','DAI','USDP','AEUR'];
 
 // LocalStorage Persistence Keys
-const LS_TRADES_KEY = 'EMA_LIVE_TRADES_V11';
-const LS_GAINERS_KEY = 'EMA_LIVE_GAINERS_V11';
-const LS_LAST_ACTIVE_KEY = 'EMA_LAST_ACTIVE_TS_V11';
+const LS_TRADES_KEY = 'EMA_LIVE_TRADES_V12';
+const LS_GAINERS_KEY = 'EMA_LIVE_GAINERS_V12';
+const LS_LAST_ACTIVE_KEY = 'EMA_LAST_ACTIVE_TS_V12';
 
 function loadStoredTrades() {
   const data = localStorage.getItem(LS_TRADES_KEY);
@@ -376,7 +405,7 @@ function switchStrategy(strat) {
   runSimulation();
 }
 
-// EMA & ATR Calculations
+// PURE PINE SCRIPT EMA & ATR CALCULATIONS
 function ema(arr,p){
   const k=2/(p+1);let v=arr[0];const out=[v];
   for(let i=1;i<arr.length;i++){v=arr[i]*k+v*(1-k);out.push(v);}
@@ -398,11 +427,11 @@ function angle(emaArr,atrArr,i,lb){
   return Math.atan((emaArr[i]-emaArr[i-lb])/(av*lb))*180/Math.PI;
 }
 
-// FIND ACTUAL PUMP BREAKOUT TIME & OPEN PRICE FROM 5M KLINES
+// FIND EXACT PUMP BREAKOUT TIMESTAMP & OPEN PRICE FROM 5M KLINES
 function findPumpStart(klines, pumpPct, currentPrice) {
   if(!klines || !klines.length) return { time: Date.now(), price: currentPrice };
   const now = Date.now();
-  const minTime = now - 12 * 3600 * 1000; // Search back up to 12 hours
+  const minTime = now - 12 * 3600 * 1000; // Constrain to last 12 hours
   const searchK = klines.filter(k => k[0] >= minTime && k[0] <= now);
   if(!searchK.length) return { time: now, price: currentPrice };
 
@@ -513,7 +542,7 @@ function renderGainersPanels() {
   document.getElementById('histGainerCntBadge').textContent = `${histCnt} Historical Logs`;
 }
 
-// MAIN LIVE BINANCE SCANNER & STANDBY RECOVERY ENGINE (WITH PUMP TIME REFINEMENT)
+// MAIN LIVE BINANCE SCANNER & STANDBY RECOVERY ENGINE (STRICTLY ON CLOSED 5M CANDLES)
 async function scanBinanceLiveNow() {
   document.getElementById('connStatus').textContent = 'Scanning Binance API...';
 
@@ -545,12 +574,9 @@ async function scanBinanceLiveNow() {
 
   for(let g of top5) {
     let existingGainer = storedGainers.find(x => x.sym === g.sym);
-
-    // Fetch 5m klines from Binance to analyze exact pump breakout & EMA signals
     const klines = await getBinanceKlines(g.sym, 180);
 
     if(klines && klines.length >= 50) {
-      // REFINE TRUE PUMP BREAKOUT TIMESTAMP FROM 5M KLINES
       const pumpInfo = findPumpStart(klines, g.chg, g.price);
 
       if(!existingGainer) {
@@ -558,8 +584,8 @@ async function scanBinanceLiveNow() {
           sym: g.sym,
           price: pumpInfo.price,
           chg: g.chg,
-          et: pumpInfo.time, // TRUE Historical Pump Start Timestamp!
-          etStr: new Date(pumpInfo.time).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+          et: pumpInfo.time, // TRUE Historical Pump Breakout Timestamp!
+          etStr: new Date(pumpInfo.time).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
           session: 1,
           refined: true
         };
@@ -567,7 +593,7 @@ async function scanBinanceLiveNow() {
       } else if(!existingGainer.refined) {
         existingGainer.et = pumpInfo.time;
         existingGainer.price = pumpInfo.price;
-        existingGainer.etStr = new Date(pumpInfo.time).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+        existingGainer.etStr = new Date(pumpInfo.time).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
         existingGainer.refined = true;
       }
 
@@ -579,11 +605,13 @@ async function scanBinanceLiveNow() {
       const e9 = ema(closes, FAST_LEN), e21 = ema(closes, SLOW_LEN);
       const ar = atr(klines, ATR_LEN), av = [ar[0], ...ar];
 
+      // SCAN STRICTLY ON COMPLETED/CLOSED CANDLES
+      const numClosedBars = klines.length - 1;
       const startIdx = Math.max(SLOW_LEN + SLOW_LB + 2, 30);
-      for(let i = startIdx; i < klines.length - 1; i++) {
+
+      for(let i = startIdx; i < numClosedBars; i++) {
         const t = times[i], h = highs[i], l = lows[i], c = closes[i];
 
-        // Analyze signals occurring after true pump start
         if(t >= existingGainer.et) {
           const fa = angle(e9, av, i, FAST_LB), sa = angle(e21, av, i, SLOW_LB);
           const fW = Math.abs(fa) >= FAST_THR, sW = Math.abs(sa) >= SLOW_THR;
@@ -596,25 +624,26 @@ async function scanBinanceLiveNow() {
             const exists = storedTrades.some(tr => tr.tradeKey === tradeKey);
 
             if(!exists) {
-              const rawPnl = parseFloat(((Math.random() * 5 - 1.5)).toFixed(2));
-              const isWin = rawPnl > 0;
-              const xp = isWin ? (c * (1 + (rawPnl/100))).toFixed(4) : (c * (1 + (rawPnl/100))).toFixed(4);
+              // Exact exit calculation on next bar / angle fade
+              const nextClose = (i + 1 < numClosedBars) ? closes[i + 1] : c;
+              const isUp = dir === 'UP';
+              const rawPnl = isUp ? ((nextClose - c) / c * 100) : ((c - nextClose) / c * 100);
 
               storedTrades.push({
                 tradeKey,
                 num: storedTrades.length + 1,
                 et: t,
                 xt: t + 900000,
-                dtStr: new Date(t).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+                dtStr: new Date(t).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
                 sym: g.sym,
                 ch, dir,
                 ep: c,
-                xp: parseFloat(xp),
-                pnl: rawPnl,
-                hhPct: isWin ? 3.2 : 0.4,
-                llPct: isWin ? -0.4 : -1.5,
+                xp: nextClose,
+                pnl: parseFloat(rawPnl.toFixed(2)),
+                hhPct: parseFloat(((h - c) / c * 100).toFixed(2)),
+                llPct: parseFloat(((l - c) / c * 100).toFixed(2)),
                 dur: 15,
-                reason: isWin ? 'Target Hit (+HH)' : (ch==='fast'?'EMA Fast Angle Faded':'EMA Slow Angle Faded'),
+                reason: rawPnl >= 0 ? 'Target Hit (+HH)' : (ch==='fast'?'EMA Fast Angle Faded':'EMA Slow Angle Faded'),
                 elapsedH: parseFloat(((t - existingGainer.et)/(3600*1000)).toFixed(1))
               });
             }
@@ -639,6 +668,8 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
   let totalFundingInr = 0, totalSlippageInr = 0;
   let maxDrawdownPct = 0;
 
+  let missedProfitInr = 0, savedLossInr = 0;
+
   let curWinStreak = 0, maxWinStreak = 0;
   let curLossStreak = 0, maxLossStreak = 0;
 
@@ -646,7 +677,11 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
   const coinCapTracker = {};
   const executedLogs = [];
 
+  // Filter 0h -> 6h Block 1 Trades
   const day1Trades = tradesArr.filter(t => t.ch !== 'bothBoth' && t.elapsedH >= 0 && t.elapsedH < windowHours);
+
+  // SORT BY TIMESTAMP ASCENDING FOR SIMULATION ACCURACY
+  day1Trades.sort((a,b) => a.et - b.et);
 
   for(const t of day1Trades) {
     for(let i = openPositions.length - 1; i >= 0; i--) {
@@ -656,17 +691,20 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
       }
     }
 
+    let isSkipped = false;
+    let skipReason = '';
+
     if(openPositions.length >= 5) {
-      skipped++;
-      continue;
+      isSkipped = true;
+      skipReason = 'Wallet 100% Full (5/5 Slots)';
     }
 
-    if(stratMode === 'B') {
+    if(!isSkipped && stratMode === 'B') {
       const curCoinMargin = coinCapTracker[t.sym] || 0;
       const maxAllowedPerCoin = (initWallet * (compPct / 100) * 2);
       if(curCoinMargin >= maxAllowedPerCoin) {
-        skipped++;
-        continue;
+        isSkipped = true;
+        skipReason = '₹160 Coin Cap Hit';
       }
     }
 
@@ -674,16 +712,29 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
     const minMarginUsdt = BINANCE_MIN_NOTIONAL_USDT / lev;
     const minMarginInr = minMarginUsdt * inrRate;
 
-    if(marginInr < minMarginInr) {
-      marginInr = minMarginInr;
+    if(marginInr < minMarginInr) marginInr = minMarginInr;
+
+    if(!isSkipped && wallet < minMarginInr) {
+      isSkipped = true;
+      skipReason = 'Insufficient Wallet Balance';
     }
 
-    if(wallet < minMarginInr) {
+    // CALCULATE SHADOW PNL FOR SKIPPED TRADES
+    const slippagePct = 0.05;
+    const rawPnl = t.pnl - slippagePct;
+    let leveredPnl = rawPnl * lev;
+
+    if(isSkipped) {
       skipped++;
+      const hypProfitInr = marginInr * (leveredPnl / 100);
+      if(hypProfitInr > 0) {
+        missedProfitInr += hypProfitInr;
+      } else {
+        savedLossInr += Math.abs(hypProfitInr);
+      }
       continue;
     }
 
-    const slippagePct = 0.05;
     const slippageInr = marginInr * (slippagePct / 100);
     totalSlippageInr += slippageInr;
 
@@ -693,10 +744,7 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
     const fundingInr = (marginInr * lev) * (fundingPct / 100);
     totalFundingInr += fundingInr;
 
-    let rawPnl = t.pnl - slippagePct;
-    let leveredPnl = rawPnl * lev;
     let isLiq = false;
-
     const liqThreshold = -(100 / lev);
     if(t.llPct !== null && t.llPct <= liqThreshold) {
       isLiq = true;
@@ -743,6 +791,9 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
     });
   }
 
+  // SORT EXECUTED LOGS NEWEST FIRST (TOP TO BOTTOM)
+  executedLogs.sort((a,b) => b.et - a.et);
+
   return {
     lev,
     initWallet,
@@ -762,6 +813,9 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
     curLossStreak,
     totalFundingInr: totalFundingInr.toFixed(2),
     totalSlippageInr: totalSlippageInr.toFixed(2),
+    missedProfitInr: missedProfitInr.toFixed(2),
+    savedLossInr: savedLossInr.toFixed(2),
+    netFilterImpact: (savedLossInr - missedProfitInr).toFixed(2),
     logs: executedLogs
   };
 }
@@ -802,8 +856,17 @@ function runSimulation() {
   document.getElementById('skipT').textContent = r.skipped;
   document.getElementById('skipReasonLbl').textContent = currentStrategy === 'A' ? 'Wallet 100% Full' : '₹160 Coin Cap Hit';
 
+  // Skipped Shadow Card
+  document.getElementById('skipCntVal').textContent = `${r.skipped} Trades`;
+  document.getElementById('missedProfitVal').textContent = `₹${r.missedProfitInr}`;
+  document.getElementById('savedLossVal').textContent = `₹${r.savedLossInr}`;
+  const impactEl = document.getElementById('netFilterImpactVal');
+  const impactSign = r.netFilterImpact >= 0 ? '+' : '';
+  impactEl.textContent = `${impactSign}₹${r.netFilterImpact}`;
+  impactEl.className = r.netFilterImpact >= 0 ? 'w-val green' : 'w-val red';
+
   document.getElementById('lastUpdated').textContent = `Updated: ${new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'})}`;
-  document.getElementById('tradeCntBadge').textContent = `${r.logs.length} Live Trades Recorded`;
+  document.getElementById('tradeCntBadge').textContent = `${r.logs.length} Live Trades Recorded (Newest First)`;
 
   const tiers = [1, 3, 5, 7, 10];
   let matrixHtml = '';
@@ -865,7 +928,7 @@ function exportSimTXT() {
   const trades = loadStoredTrades();
 
   let txt = `================================================================================\n`;
-  txt += `⚡ EMA MOMENTUM — LIVE BINANCE API SCANNER REPORT v11\n`;
+  txt += `⚡ EMA MOMENTUM — LIVE BINANCE API SCANNER REPORT v12\n`;
   txt += `Strategy: Strategy ${currentStrategy} | USD/INR Rate: ₹${inrRate}\n`;
   txt += `Starting Wallet: ₹${initW} INR | Compounding: 20% | Leverage: ${activeLev}x\n`;
   txt += `Active Window: 0h -> ${windowH}h (Block 1 Filter)\n`;
