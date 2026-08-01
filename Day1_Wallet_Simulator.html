@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>EMA Momentum — Live Wallet Simulator v17 (Individual Binance Pump Breakout Timestamps)</title>
+<title>EMA Momentum — Live Wallet Simulator v18 (Live Open Positions & HH/LL Trade Log)</title>
 <meta name="theme-color" content="#060810">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -62,6 +62,10 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 .timer-active{background:rgba(0,230,118,0.1);color:var(--green);border:1px solid rgba(0,230,118,0.2)}
 .timer-exp{background:rgba(255,23,68,0.1);color:var(--red);border:1px solid rgba(255,23,68,0.2)}
 
+/* LIVE OPEN POSITIONS CARDS */
+.open-pos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:10px}
+.open-pos-card{background:linear-gradient(135deg,rgba(0,230,118,0.08),rgba(0,176,255,0.08));border:1px solid rgba(0,230,118,0.3);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+
 /* WALLET STATS DASHBOARD */
 .wallet-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:10px}
 .w-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px;text-align:center}
@@ -101,8 +105,8 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <div class="hdr">
   <div class="hdr-top">
     <div class="title-box">
-      <h1>⚡ EMA Momentum — Live Wallet Simulator v17</h1>
-      <p>Individual Binance Pump Breakout Timestamps & True Remaining Timers</p>
+      <h1>⚡ EMA Momentum — Live Wallet Simulator v18</h1>
+      <p>Live Open Positions Panel, Entry/Exit Times & HH/LL Performance Analytics</p>
     </div>
     <div class="status-pill">
       <span class="dot"></span>
@@ -138,6 +142,17 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
       <span>🔵 STRATEGY B (Max Capital Risk Control Cap)</span>
       <span style="font-size:10px;font-weight:600;opacity:0.9">Enforces Max ₹160/coin limit. Skips 3rd signal to diversify wallet risk.</span>
     </button>
+  </div>
+</div>
+
+<!-- SECTION 0: LIVE ACTIVE OPEN POSITIONS (ACTIVE TRADES IN PROGRESS) -->
+<div class="card" style="border-color:rgba(0,230,118,0.5);background:linear-gradient(135deg,rgba(0,230,118,0.05),rgba(6,8,16,0.95))">
+  <div class="card-hdr">
+    <span class="card-title" style="color:var(--green)">⚡ LIVE OPEN POSITIONS (Active Trades In Progress — Line Currently White)</span>
+    <span id="openPosSummaryBadge" style="font-size:11px;font-weight:700;color:var(--gold)">0 Active Positions Open</span>
+  </div>
+  <div class="open-pos-grid" id="openPosGridCont">
+    <div style="color:var(--t3);font-size:11px">No live active positions open right now. Waiting for EMA angle breakout signal...</div>
   </div>
 </div>
 
@@ -203,7 +218,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
   </div>
 
   <div class="btn-row">
-    <button class="btn btn-grn" onclick="scanBinanceLiveNow()">🔄 Refine Individual Coin Pump Times & Signals Now</button>
+    <button class="btn btn-grn" onclick="scanBinanceLiveNow()">🔄 Scan Live Binance Gainers & Positions Now</button>
     <button class="btn btn-blu" onclick="exportSimTXT()">📄 Export Live Trades TXT Report</button>
     <button class="btn btn-red" onclick="resetLiveSession()">🗑️ Reset & Start Clean Session From Today</button>
     <button class="btn btn-sec" onclick="window.print()">🖨️ Save PDF Report</button>
@@ -314,10 +329,10 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
   </div>
 </div>
 
-<!-- TRADES HISTORY LOG (NEWEST FIRST) -->
+<!-- TRADES HISTORY LOG (WITH ENTRY/EXIT TIMES & HH/LL COLUMNS) -->
 <div class="card">
   <div class="card-hdr">
-    <span class="card-title">📜 Executed Paper Trades Log (Sorted Newest First — Exact Binance Candle Timestamps)</span>
+    <span class="card-title">📜 Executed Paper Trades Log (Sorted Newest First — Entry/Exit Times & HH/LL Analysis)</span>
     <span id="tradeCntBadge" style="font-size:10px;color:var(--t2)">0 Trades</span>
   </div>
   <div class="scrl">
@@ -326,14 +341,16 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
         <tr>
           <th>#</th>
           <th>Entry Date & Time</th>
+          <th>Exit Date & Time</th>
           <th>Coin</th>
-          <th>Strategy</th>
+          <th>Channel</th>
           <th>Dir</th>
           <th>Margin (₹)</th>
           <th>Lev</th>
           <th>Entry $</th>
           <th>Exit $</th>
-          <th>Slippage</th>
+          <th>Max HH %</th>
+          <th>Max LL %</th>
           <th>Raw PnL%</th>
           <th>Levered PnL%</th>
           <th>Fees (₹)</th>
@@ -343,7 +360,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
         </tr>
       </thead>
       <tbody id="tradeLogBody">
-        <tr><td colspan="16" style="text-align:center;color:var(--t3);padding:20px">Reconstructing Binance 24h All-Coins Top 5 Gainers & EMA Signals...</td></tr>
+        <tr><td colspan="18" style="text-align:center;color:var(--t3);padding:20px">Reconstructing Binance 24h All-Coins Top 5 Gainers & EMA Signals...</td></tr>
       </tbody>
     </table>
   </div>
@@ -360,9 +377,10 @@ const FAST_THR = 12.0, SLOW_THR = 8.0;
 const STABLE = ['USDC','BUSD','FDUSD','TUSD','DAI','USDP','AEUR'];
 
 // LocalStorage Persistence Keys
-const LS_TRADES_KEY = 'EMA_LIVE_TRADES_V17';
-const LS_GAINERS_KEY = 'EMA_LIVE_GAINERS_V17';
-const LS_LAST_ACTIVE_KEY = 'EMA_LAST_ACTIVE_TS_V17';
+const LS_TRADES_KEY = 'EMA_LIVE_TRADES_V18';
+const LS_GAINERS_KEY = 'EMA_LIVE_GAINERS_V18';
+const LS_OPEN_POS_KEY = 'EMA_OPEN_POSITIONS_V18';
+const LS_LAST_ACTIVE_KEY = 'EMA_LAST_ACTIVE_TS_V18';
 
 function loadStoredTrades() {
   const data = localStorage.getItem(LS_TRADES_KEY);
@@ -378,11 +396,19 @@ function loadStoredGainers() {
 function saveStoredGainers(gainers) {
   localStorage.setItem(LS_GAINERS_KEY, JSON.stringify(gainers));
 }
+function loadStoredOpenPositions() {
+  const data = localStorage.getItem(LS_OPEN_POS_KEY);
+  return data ? JSON.parse(data) : [];
+}
+function saveStoredOpenPositions(pos) {
+  localStorage.setItem(LS_OPEN_POS_KEY, JSON.stringify(pos));
+}
 
 function resetLiveSession() {
   if(confirm("Are you sure you want to clear all previous trades and start a FRESH NEW LIVE SESSION from today?")) {
     localStorage.removeItem(LS_TRADES_KEY);
     localStorage.removeItem(LS_GAINERS_KEY);
+    localStorage.removeItem(LS_OPEN_POS_KEY);
     localStorage.removeItem(LS_LAST_ACTIVE_KEY);
     runSimulation();
   }
@@ -434,7 +460,6 @@ function findIndividualPumpStart(klines, openPrice, lastPrice, pumpPct) {
   const searchK = klines.filter(k => k[0] >= (now - 24 * 3600 * 1000));
   if(!searchK.length) return { time: now - 3600000, price: lastPrice };
 
-  // Pre-pump price baseline
   const prePumpPrice = openPrice > 0 ? openPrice : lastPrice / (1 + Math.abs(pumpPct) / 100);
   const breakoutThreshold = prePumpPrice * 1.05;
 
@@ -445,7 +470,6 @@ function findIndividualPumpStart(klines, openPrice, lastPrice, pumpPct) {
     }
   }
 
-  // Fallback: Max volume candle
   let maxVol = 0, pumpK = searchK[0];
   for(let k of searchK) {
     const vol = parseFloat(k[5]);
@@ -478,9 +502,9 @@ async function getBinanceKlines(sym, limit=200) {
   }
 }
 
-// STATE MACHINE SIGNAL ENGINE (100% PINE SCRIPT MATCH)
+// STATE MACHINE SIGNAL ENGINE WITH LIVE OPEN POSITIONS EXTRACTION
 function runPineScriptStateAnalysis(klines, fromTs, sym) {
-  if(!klines || klines.length < 55) return [];
+  if(!klines || klines.length < 55) return { closedTrades: [], openPositions: [] };
 
   const closes = klines.map(k=>+k[4]);
   const highs = klines.map(k=>+k[2]);
@@ -519,6 +543,7 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
           sym, ch: 'fast', dir: openFast.dir,
           et: openFast.et, xt: t,
           dtStr: new Date(openFast.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+          xtStr: new Date(t).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
           ep: openFast.ep, xp: c,
           pnl: parseFloat(rawPnl.toFixed(2)),
           hhPct: parseFloat(((openFast.hh - openFast.ep) / openFast.ep * 100).toFixed(2)),
@@ -540,6 +565,7 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
           sym, ch: 'slow', dir: openSlow.dir,
           et: openSlow.et, xt: t,
           dtStr: new Date(openSlow.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+          xtStr: new Date(t).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
           ep: openSlow.ep, xp: c,
           pnl: parseFloat(rawPnl.toFixed(2)),
           hhPct: parseFloat(((openSlow.hh - openSlow.ep) / openSlow.ep * 100).toFixed(2)),
@@ -561,6 +587,7 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
           sym, ch: 'bothEither', dir: openBoth.dir,
           et: openBoth.et, xt: t,
           dtStr: new Date(openBoth.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+          xtStr: new Date(t).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
           ep: openBoth.ep, xp: c,
           pnl: parseFloat(rawPnl.toFixed(2)),
           hhPct: parseFloat(((openBoth.hh - openBoth.ep) / openBoth.ep * 100).toFixed(2)),
@@ -580,7 +607,41 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
     pF = fW; pS = sW; pB = bW;
   }
 
-  return closedTrades;
+  // Extract currently active open positions (line still white)
+  const openPosList = [];
+  const currentPrice = closes[closes.length - 1];
+
+  if(openFast) {
+    const isUp = openFast.dir === 'UP';
+    const curPnl = isUp ? ((currentPrice - openFast.ep) / openFast.ep * 100) : ((openFast.ep - currentPrice) / openFast.ep * 100);
+    openPosList.push({
+      sym, ch: 'fast', dir: openFast.dir, et: openFast.et,
+      dtStr: new Date(openFast.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+      ep: openFast.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2))
+    });
+  }
+
+  if(openSlow) {
+    const isUp = openSlow.dir === 'UP';
+    const curPnl = isUp ? ((currentPrice - openSlow.ep) / openSlow.ep * 100) : ((openSlow.ep - currentPrice) / openSlow.ep * 100);
+    openPosList.push({
+      sym, ch: 'slow', dir: openSlow.dir, et: openSlow.et,
+      dtStr: new Date(openSlow.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+      ep: openSlow.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2))
+    });
+  }
+
+  if(openBoth) {
+    const isUp = openBoth.dir === 'UP';
+    const curPnl = isUp ? ((currentPrice - openBoth.ep) / openBoth.ep * 100) : ((openBoth.ep - currentPrice) / openBoth.ep * 100);
+    openPosList.push({
+      sym, ch: 'bothEither', dir: openBoth.dir, et: openBoth.et,
+      dtStr: new Date(openBoth.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+      ep: openBoth.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2))
+    });
+  }
+
+  return { closedTrades, openPositions: openPosList };
 }
 
 // Render Partitioned Gainers Panels
@@ -634,7 +695,53 @@ function renderGainersPanels() {
   document.getElementById('histGainerCntBadge').textContent = `${histCnt} Historical Logs`;
 }
 
-// MAIN RECONSTRUCTION SCANNER WITH INDIVIDUAL PUMP TIMESTAMP DISCOVERY
+// RENDER LIVE ACTIVE OPEN POSITIONS PANEL
+function renderLiveOpenPositions() {
+  const openCont = document.getElementById('openPosGridCont');
+  const openPos = loadStoredOpenPositions();
+  const activeLev = parseInt(document.getElementById('levSelect').value) || 5;
+  const inrRate = parseFloat(document.getElementById('inrRateInput').value) || 94;
+
+  if(!openPos || openPos.length === 0) {
+    openCont.innerHTML = '<div style="color:var(--t3);font-size:11px;padding:10px">No live active positions open right now. Waiting for EMA angle breakout signal...</div>';
+    document.getElementById('openPosSummaryBadge').textContent = '0 Active Positions Open';
+    return;
+  }
+
+  let totalFloatingPnlInr = 0;
+  let html = '';
+
+  openPos.forEach(p => {
+    const leveredPnlPct = p.pnl * activeLev;
+    const marginInr = 160; // Standard position margin
+    const floatingInr = marginInr * (leveredPnlPct / 100);
+    totalFloatingPnlInr += floatingInr;
+
+    const pnlCls = leveredPnlPct >= 0 ? 'green' : 'red';
+    const sign = leveredPnlPct >= 0 ? '+' : '';
+
+    html += `<div class="open-pos-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:14px;font-weight:800;font-family:var(--mono);color:#fff">${p.sym}</span>
+        <span class="${p.dir==='UP'?'green':'red'}" style="font-size:11px;font-weight:800;background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:6px">${p.dir} • ${p.ch.toUpperCase()}</span>
+      </div>
+      <div style="font-size:10px;color:var(--t2);display:flex;flex-direction:column;gap:2px">
+        <span>Entry Date & Time: <b>${p.dtStr}</b></span>
+        <span>Entry Price: <b>$${p.ep}</b> | Live Price: <b>$${p.currentPrice}</b></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08)">
+        <span style="font-size:10px;color:var(--t3)">Floating Levered PnL:</span>
+        <span class="${pnlCls}" style="font-size:13px;font-weight:800;font-family:var(--mono)">${sign}${leveredPnlPct.toFixed(1)}% (${sign}₹${floatingInr.toFixed(2)})</span>
+      </div>
+    </div>`;
+  });
+
+  openCont.innerHTML = html;
+  const totSign = totalFloatingPnlInr >= 0 ? '+' : '';
+  document.getElementById('openPosSummaryBadge').textContent = `${openPos.length} Active Positions Open (${totSign}₹${totalFloatingPnlInr.toFixed(2)} Net Floating PnL)`;
+}
+
+// MAIN RECONSTRUCTION SCANNER WITH INDIVIDUAL PUMP TIMESTAMP DISCOVERY & OPEN POSITIONS
 async function scanBinanceLiveNow() {
   document.getElementById('connStatus').textContent = 'Reconstructing 24h All-Coins Top Gainers...';
 
@@ -665,13 +772,13 @@ async function scanBinanceLiveNow() {
 
   const storedGainers = loadStoredGainers();
   const storedTrades = loadStoredTrades();
+  let allLiveOpenPos = [];
 
   for(let g of candidateGainers) {
     let existingGainer = storedGainers.find(x => x.sym === g.symbol);
     const klines = await getBinanceKlines(g.symbol, 180);
 
     if(klines && klines.length >= 55) {
-      // REFINE EACH COIN'S UNIQUE HISTORICAL PUMP BREAKOUT TIMESTAMP
       const pumpInfo = findIndividualPumpStart(klines, parseFloat(g.openPrice), parseFloat(g.lastPrice), parseFloat(g.priceChangePercent));
 
       if(!existingGainer) {
@@ -679,7 +786,7 @@ async function scanBinanceLiveNow() {
           sym: g.symbol,
           price: pumpInfo.price,
           chg: parseFloat(g.priceChangePercent),
-          et: pumpInfo.time, // EACH COIN'S UNIQUE BREAKOUT TIME!
+          et: pumpInfo.time,
           etStr: new Date(pumpInfo.time).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
           session: 1,
           refined: true
@@ -692,19 +799,25 @@ async function scanBinanceLiveNow() {
         existingGainer.refined = true;
       }
 
-      const detectedTrades = runPineScriptStateAnalysis(klines, existingGainer.et, g.symbol);
+      const res = runPineScriptStateAnalysis(klines, existingGainer.et, g.symbol);
 
-      detectedTrades.forEach(dt => {
+      res.closedTrades.forEach(dt => {
         const exists = storedTrades.some(tr => tr.tradeKey === dt.tradeKey);
         if(!exists) {
           storedTrades.push(dt);
         }
       });
+
+      if(res.openPositions && res.openPositions.length > 0) {
+        allLiveOpenPos = allLiveOpenPos.concat(res.openPositions);
+      }
     }
   }
 
   saveStoredGainers(storedGainers);
   saveStoredTrades(storedTrades);
+  saveStoredOpenPositions(allLiveOpenPos);
+
   document.getElementById('connStatus').textContent = `Binance Live 24h Feed Active (Updated ${new Date().toLocaleTimeString()})`;
 
   runSimulation();
@@ -873,6 +986,7 @@ function runSimulation() {
   const windowH = parseInt(document.getElementById('windowSelect').value) || 6;
 
   renderGainersPanels();
+  renderLiveOpenPositions();
 
   const trades = loadStoredTrades();
   const r = runSimulationForLeverage(activeLev, initW, compPct, windowH, trades, inrRate, currentStrategy);
@@ -934,7 +1048,7 @@ function runSimulation() {
 
   let logsHtml = '';
   if(r.logs.length === 0) {
-    logsHtml = `<tr><td colspan="16" style="text-align:center;color:var(--t3);padding:25px">No live trades recorded yet today. Click "Refine Individual Coin Pump Times & Signals Now" to scan Binance API live!</td></tr>`;
+    logsHtml = `<tr><td colspan="18" style="text-align:center;color:var(--t3);padding:25px">No live trades recorded yet today. Click "Scan Live Binance Gainers & Positions Now" to scan Binance API live!</td></tr>`;
   } else {
     r.logs.forEach((t, i) => {
       const rowCls = t.isLiq ? 'liq' : t.netProfitInr > 0 ? 'win' : 'loss';
@@ -943,6 +1057,7 @@ function runSimulation() {
       logsHtml += `<tr class="${rowCls}">
         <td>#${i+1}</td>
         <td><b>${t.dtStr}</b></td>
+        <td><b>${t.xtStr || '-'}</b></td>
         <td><b>${t.sym}</b></td>
         <td>${t.ch}</td>
         <td class="${t.dir==='UP'?'green':'red'}">${t.dir}</td>
@@ -950,9 +1065,10 @@ function runSimulation() {
         <td><b>${t.lev}x</b></td>
         <td>$${t.ep}</td>
         <td>$${t.xp}</td>
-        <td class="gold">-${t.slippagePct}%</td>
+        <td class="green">+${t.hhPct || 0}%</td>
+        <td class="red">${t.llPct || 0}%</td>
         <td>${t.rawPnl >= 0 ? '+' : ''}${t.rawPnl}%</td>
-        <td class="${pnlCls}"><b>${ps}₹${t.netProfitInr.toFixed(2)}</b></td>
+        <td class="${pnlCls}"><b>${ps}${t.leveredPnl.toFixed(1)}%</b></td>
         <td class="gold">₹${t.fundingInr.toFixed(2)}</td>
         <td class="${pnlCls}"><b>${ps}₹${t.netProfitInr.toFixed(2)}</b></td>
         <td><b>₹${t.newWallet.toFixed(2)}</b></td>
@@ -972,7 +1088,7 @@ function exportSimTXT() {
   const trades = loadStoredTrades();
 
   let txt = `================================================================================\n`;
-  txt += `⚡ EMA MOMENTUM — LIVE BINANCE 24H RECONSTRUCTOR REPORT v17\n`;
+  txt += `⚡ EMA MOMENTUM — LIVE BINANCE 24H RECONSTRUCTOR REPORT v18\n`;
   txt += `Strategy: Strategy ${currentStrategy} | USD/INR Rate: ₹${inrRate}\n`;
   txt += `Starting Wallet: ₹${initW} INR | Compounding: 20% | Leverage: ${activeLev}x\n`;
   txt += `Active Window: 0h -> ${windowH}h (Block 1 Filter)\n`;
