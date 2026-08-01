@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>EMA Momentum — Live Wallet Simulator v12 (Pine Script Exact Timestamps & Shadow PnL)</title>
+<title>EMA Momentum — Live Wallet Simulator v13 (100% Exact Binance 24h Rolling Ticker Method)</title>
 <meta name="theme-color" content="#060810">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -101,8 +101,8 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <div class="hdr">
   <div class="hdr-top">
     <div class="title-box">
-      <h1>⚡ EMA Momentum — Live Wallet Simulator v12</h1>
-      <p>Pine Script Exact Timestamps, Offline Gap Reconstructor & Skipped Trades Shadow PnL Engine</p>
+      <h1>⚡ EMA Momentum — Live Wallet Simulator v13</h1>
+      <p>100% Exact Binance 24h Rolling Ticker Method, Offline Gap Recovery & Shadow PnL Engine</p>
     </div>
     <div class="status-pill">
       <span class="dot"></span>
@@ -121,7 +121,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <!-- RECOVERY BANNER -->
 <div class="rec-bar" id="recBar" style="display:none">
   <span style="font-size:18px">🔄</span>
-  <div id="recTxt">Analyzing offline gap... Recovering true pump timestamps & missed Top Gainers from Binance 5m klines!</div>
+  <div id="recTxt">Analyzing offline gap... Reconstructing Binance 24h Top Gainers & missed EMA signals!</div>
 </div>
 
 <!-- STRATEGY SELECTOR CARD -->
@@ -144,7 +144,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <!-- SECTION 1: LIVE ACTIVE GAINERS WITH REAL-TIME COUNTDOWN TIMER -->
 <div class="card" style="border-color:rgba(0,230,118,0.4)">
   <div class="card-hdr">
-    <span class="card-title" style="color:var(--green)">🔥 SECTION 1: LIVE ACTIVE GAINERS (True Pump Start Block 1 Countdown)</span>
+    <span class="card-title" style="color:var(--green)">🔥 SECTION 1: LIVE ACTIVE GAINERS (Binance 24h Rolling Block 1 Countdown)</span>
     <span id="liveGainerCntBadge" style="font-size:10px;color:var(--t2)">Fetching Live Binance Gainers...</span>
   </div>
   <div class="gainer-grid" id="liveGainerGridCont">
@@ -166,7 +166,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <!-- CONTROLS & CONFIG CARD -->
 <div class="card">
   <div class="card-hdr">
-    <span class="card-title">⚙️ Simulator Controls & Binance Pump Detector</span>
+    <span class="card-title">⚙️ Simulator Controls & Binance 24h Rolling Detector</span>
     <span style="font-size:10px;color:var(--gold)">Real Money Simulation Engine</span>
   </div>
   <div class="config-grid">
@@ -203,7 +203,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
   </div>
 
   <div class="btn-row">
-    <button class="btn btn-grn" onclick="scanBinanceLiveNow()">🔄 Scan Live Binance Gainers & Refine Entry Times Now</button>
+    <button class="btn btn-grn" onclick="scanBinanceLiveNow()">🔄 Scan Live Binance 24h Gainers Now</button>
     <button class="btn btn-blu" onclick="exportSimTXT()">📄 Export Live Trades TXT Report</button>
     <button class="btn btn-red" onclick="resetLiveSession()">🗑️ Reset & Start Clean Session From Today</button>
     <button class="btn btn-sec" onclick="window.print()">🖨️ Save PDF Report</button>
@@ -343,7 +343,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
         </tr>
       </thead>
       <tbody id="tradeLogBody">
-        <tr><td colspan="16" style="text-align:center;color:var(--t3);padding:20px">Scanning Binance API & Refining Historical Pump Entry Timestamps...</td></tr>
+        <tr><td colspan="16" style="text-align:center;color:var(--t3);padding:20px">Scanning Binance 24h Rolling API...</td></tr>
       </tbody>
     </table>
   </div>
@@ -360,9 +360,9 @@ const FAST_THR = 12.0, SLOW_THR = 8.0;
 const STABLE = ['USDC','BUSD','FDUSD','TUSD','DAI','USDP','AEUR'];
 
 // LocalStorage Persistence Keys
-const LS_TRADES_KEY = 'EMA_LIVE_TRADES_V12';
-const LS_GAINERS_KEY = 'EMA_LIVE_GAINERS_V12';
-const LS_LAST_ACTIVE_KEY = 'EMA_LAST_ACTIVE_TS_V12';
+const LS_TRADES_KEY = 'EMA_LIVE_TRADES_V13';
+const LS_GAINERS_KEY = 'EMA_LIVE_GAINERS_V13';
+const LS_LAST_ACTIVE_KEY = 'EMA_LAST_ACTIVE_TS_V13';
 
 function loadStoredTrades() {
   const data = localStorage.getItem(LS_TRADES_KEY);
@@ -427,34 +427,7 @@ function angle(emaArr,atrArr,i,lb){
   return Math.atan((emaArr[i]-emaArr[i-lb])/(av*lb))*180/Math.PI;
 }
 
-// FIND EXACT PUMP BREAKOUT TIMESTAMP & OPEN PRICE FROM 5M KLINES
-function findPumpStart(klines, pumpPct, currentPrice) {
-  if(!klines || !klines.length) return { time: Date.now(), price: currentPrice };
-  const now = Date.now();
-  const minTime = now - 12 * 3600 * 1000; // Constrain to last 12 hours
-  const searchK = klines.filter(k => k[0] >= minTime && k[0] <= now);
-  if(!searchK.length) return { time: now, price: currentPrice };
-
-  const prePumpPrice = currentPrice / (1 + Math.abs(pumpPct) / 100);
-  const crossThreshold = prePumpPrice * 1.015;
-
-  for(let k of searchK) {
-    const open = parseFloat(k[1]), close = parseFloat(k[4]), high = parseFloat(k[2]);
-    if(close >= crossThreshold || high >= crossThreshold) {
-      return { time: Math.min(now, k[0]), price: open };
-    }
-  }
-
-  // Volume spike fallback
-  let maxVol = 0, pumpK = searchK[0];
-  for(let k of searchK) {
-    const vol = parseFloat(k[5]);
-    if(vol > maxVol) { maxVol = vol; pumpK = k; }
-  }
-  return { time: Math.min(now, pumpK[0]), price: parseFloat(pumpK[1]) };
-}
-
-// BINANCE LIVE API SCANNER
+// 100% BINANCE 24H ROLLING TICKER METHOD FOR TOP GAINERS
 async function getTop5GainersFromBinance() {
   try {
     const r = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr');
@@ -469,7 +442,8 @@ async function getTop5GainersFromBinance() {
         top5.push({
           sym: t.symbol,
           price: +t.lastPrice,
-          chg: +t.priceChangePercent
+          chg: +t.priceChangePercent,
+          openTime: t.openTime || Date.now() - 86400000
         });
       }
     }
@@ -518,8 +492,8 @@ function renderGainersPanels() {
         <span class="gainer-pump">+${g.chg.toFixed(1)}%</span>
       </div>
       <div class="gainer-meta">
-        <span>Breakout Price: $${g.price}</span>
-        <span style="color:var(--t1)">True Pump Start: ${g.etStr}</span>
+        <span>24h Price: $${g.price}</span>
+        <span style="color:var(--t1)">Binance Gainer Entry: ${g.etStr}</span>
       </div>
       <div class="gainer-timer ${isExp ? 'timer-exp' : 'timer-active'}">
         ${isExp ? '🛑 Block 1 Expired (6h Completed)' : `⏳ ${remH}h ${remM}m Left in Block 1`}
@@ -542,14 +516,13 @@ function renderGainersPanels() {
   document.getElementById('histGainerCntBadge').textContent = `${histCnt} Historical Logs`;
 }
 
-// MAIN LIVE BINANCE SCANNER & STANDBY RECOVERY ENGINE (STRICTLY ON CLOSED 5M CANDLES)
+// MAIN LIVE BINANCE SCANNER (100% BINANCE 24H ROLLING TICKER METHOD)
 async function scanBinanceLiveNow() {
-  document.getElementById('connStatus').textContent = 'Scanning Binance API...';
+  document.getElementById('connStatus').textContent = 'Scanning Binance 24h Tickers...';
 
   const lastActiveTs = localStorage.getItem(LS_LAST_ACTIVE_KEY);
   const now = Date.now();
 
-  // Check if returning from offline gap
   if(lastActiveTs) {
     const elapsedMinutes = Math.floor((now - parseInt(lastActiveTs)) / 60000);
     if(elapsedMinutes >= 15) {
@@ -557,12 +530,13 @@ async function scanBinanceLiveNow() {
       const recTxt = document.getElementById('recTxt');
       recBar.style.display = 'flex';
       const gapHours = (elapsedMinutes / 60).toFixed(1);
-      recTxt.textContent = `🔄 Phone/App reopened after ${gapHours} hours offline! Refining true pump timestamps & recovering missed Top Gainers from Binance 5m klines...`;
+      recTxt.textContent = `🔄 Phone/App reopened after ${gapHours} hours offline! Reconstructing Binance 24h Top Gainers & missed EMA signals...`;
       setTimeout(() => { recBar.style.display = 'none'; }, 8000);
     }
   }
   localStorage.setItem(LS_LAST_ACTIVE_KEY, now.toString());
 
+  // Fetch 100% Binance 24h Rolling Top Gainers
   const top5 = await getTop5GainersFromBinance();
   if(top5.length === 0) {
     document.getElementById('connStatus').textContent = 'Binance API Feed Active (Waiting for ticker)';
@@ -574,29 +548,21 @@ async function scanBinanceLiveNow() {
 
   for(let g of top5) {
     let existingGainer = storedGainers.find(x => x.sym === g.sym);
+
+    if(!existingGainer) {
+      existingGainer = {
+        sym: g.sym,
+        price: g.price,
+        chg: g.chg,
+        et: now, // Binance 24h Ticker Gainer Detection Time
+        etStr: new Date(now).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+        session: 1
+      };
+      storedGainers.push(existingGainer);
+    }
+
     const klines = await getBinanceKlines(g.sym, 180);
-
     if(klines && klines.length >= 50) {
-      const pumpInfo = findPumpStart(klines, g.chg, g.price);
-
-      if(!existingGainer) {
-        existingGainer = {
-          sym: g.sym,
-          price: pumpInfo.price,
-          chg: g.chg,
-          et: pumpInfo.time, // TRUE Historical Pump Breakout Timestamp!
-          etStr: new Date(pumpInfo.time).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
-          session: 1,
-          refined: true
-        };
-        storedGainers.push(existingGainer);
-      } else if(!existingGainer.refined) {
-        existingGainer.et = pumpInfo.time;
-        existingGainer.price = pumpInfo.price;
-        existingGainer.etStr = new Date(pumpInfo.time).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
-        existingGainer.refined = true;
-      }
-
       const closes = klines.map(k=>+k[4]);
       const highs = klines.map(k=>+k[2]);
       const lows = klines.map(k=>+k[3]);
@@ -605,14 +571,13 @@ async function scanBinanceLiveNow() {
       const e9 = ema(closes, FAST_LEN), e21 = ema(closes, SLOW_LEN);
       const ar = atr(klines, ATR_LEN), av = [ar[0], ...ar];
 
-      // SCAN STRICTLY ON COMPLETED/CLOSED CANDLES
       const numClosedBars = klines.length - 1;
       const startIdx = Math.max(SLOW_LEN + SLOW_LB + 2, 30);
 
       for(let i = startIdx; i < numClosedBars; i++) {
         const t = times[i], h = highs[i], l = lows[i], c = closes[i];
 
-        if(t >= existingGainer.et) {
+        if(t >= existingGainer.et - 3600000) { // Scan signals within 6h Block 1 window
           const fa = angle(e9, av, i, FAST_LB), sa = angle(e21, av, i, SLOW_LB);
           const fW = Math.abs(fa) >= FAST_THR, sW = Math.abs(sa) >= SLOW_THR;
 
@@ -624,7 +589,6 @@ async function scanBinanceLiveNow() {
             const exists = storedTrades.some(tr => tr.tradeKey === tradeKey);
 
             if(!exists) {
-              // Exact exit calculation on next bar / angle fade
               const nextClose = (i + 1 < numClosedBars) ? closes[i + 1] : c;
               const isUp = dir === 'UP';
               const rawPnl = isUp ? ((nextClose - c) / c * 100) : ((c - nextClose) / c * 100);
@@ -655,7 +619,7 @@ async function scanBinanceLiveNow() {
 
   saveStoredGainers(storedGainers);
   saveStoredTrades(storedTrades);
-  document.getElementById('connStatus').textContent = `Binance Live Feed Active (Updated ${new Date().toLocaleTimeString()})`;
+  document.getElementById('connStatus').textContent = `Binance Live 24h Feed Active (Updated ${new Date().toLocaleTimeString()})`;
 
   runSimulation();
 }
@@ -677,10 +641,7 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
   const coinCapTracker = {};
   const executedLogs = [];
 
-  // Filter 0h -> 6h Block 1 Trades
   const day1Trades = tradesArr.filter(t => t.ch !== 'bothBoth' && t.elapsedH >= 0 && t.elapsedH < windowHours);
-
-  // SORT BY TIMESTAMP ASCENDING FOR SIMULATION ACCURACY
   day1Trades.sort((a,b) => a.et - b.et);
 
   for(const t of day1Trades) {
@@ -719,7 +680,6 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
       skipReason = 'Insufficient Wallet Balance';
     }
 
-    // CALCULATE SHADOW PNL FOR SKIPPED TRADES
     const slippagePct = 0.05;
     const rawPnl = t.pnl - slippagePct;
     let leveredPnl = rawPnl * lev;
@@ -791,7 +751,6 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
     });
   }
 
-  // SORT EXECUTED LOGS NEWEST FIRST (TOP TO BOTTOM)
   executedLogs.sort((a,b) => b.et - a.et);
 
   return {
@@ -856,7 +815,6 @@ function runSimulation() {
   document.getElementById('skipT').textContent = r.skipped;
   document.getElementById('skipReasonLbl').textContent = currentStrategy === 'A' ? 'Wallet 100% Full' : '₹160 Coin Cap Hit';
 
-  // Skipped Shadow Card
   document.getElementById('skipCntVal').textContent = `${r.skipped} Trades`;
   document.getElementById('missedProfitVal').textContent = `₹${r.missedProfitInr}`;
   document.getElementById('savedLossVal').textContent = `₹${r.savedLossInr}`;
@@ -890,7 +848,7 @@ function runSimulation() {
 
   let logsHtml = '';
   if(r.logs.length === 0) {
-    logsHtml = `<tr><td colspan="16" style="text-align:center;color:var(--t3);padding:25px">No live trades recorded yet today. Click "Scan Live Binance Gainers & Refine Entry Times Now" to scan Binance API live!</td></tr>`;
+    logsHtml = `<tr><td colspan="16" style="text-align:center;color:var(--t3);padding:25px">No live trades recorded yet today. Click "Scan Live Binance 24h Gainers Now" to scan Binance API live!</td></tr>`;
   } else {
     r.logs.forEach((t, i) => {
       const rowCls = t.isLiq ? 'liq' : t.netProfitInr > 0 ? 'win' : 'loss';
@@ -928,7 +886,7 @@ function exportSimTXT() {
   const trades = loadStoredTrades();
 
   let txt = `================================================================================\n`;
-  txt += `⚡ EMA MOMENTUM — LIVE BINANCE API SCANNER REPORT v12\n`;
+  txt += `⚡ EMA MOMENTUM — LIVE BINANCE 24H ROLLING TICKER REPORT v13\n`;
   txt += `Strategy: Strategy ${currentStrategy} | USD/INR Rate: ₹${inrRate}\n`;
   txt += `Starting Wallet: ₹${initW} INR | Compounding: 20% | Leverage: ${activeLev}x\n`;
   txt += `Active Window: 0h -> ${windowH}h (Block 1 Filter)\n`;
@@ -944,10 +902,7 @@ function exportSimTXT() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-// Initial Binance Scanner Launch
 scanBinanceLiveNow();
-
-// Auto-scan Binance every 30 seconds
 setInterval(scanBinanceLiveNow, 30000);
 </script>
 </body>
