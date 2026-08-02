@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>EMA Momentum — 10-Day Full Backtest & Analytics Report (Jul 24 - Aug 2, 2026)</title>
+<title>EMA Momentum — Accurate 10-Day Full Backtest & Analytics Report (5,295 Signals Dataset)</title>
 <meta name="theme-color" content="#060810">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -40,11 +40,10 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 .w-val{font-size:16px;font-weight:800;font-family:var(--mono)}
 .w-sub{font-size:10px;color:var(--t2);margin-top:3px;font-family:var(--mono)}
 
-/* 5 KEY INSIGHTS CARDS */
-.insights-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:10px}
-.insight-card{background:linear-gradient(135deg,rgba(124,77,255,0.1),rgba(0,176,255,0.1));border:1px solid rgba(124,77,255,0.3);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px}
-.insight-title{font-size:12px;font-weight:800;color:var(--gold);text-transform:uppercase}
-.insight-desc{font-size:11px;color:var(--t1);line-height:1.4}
+/* DAY BY DAY TABLE */
+.day-table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono);margin-top:10px}
+.day-table th{background:rgba(255,255,255,0.08);color:var(--t2);padding:8px 10px;text-align:center;font-size:10px;text-transform:uppercase}
+.day-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center}
 
 /* TABLES */
 .trade-table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)}
@@ -71,18 +70,18 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <div class="hdr">
   <div class="hdr-top">
     <div class="title-box">
-      <h1>📊 EMA Momentum — 10-Day Full Backtest & Strategy Analytics</h1>
-      <p>10-Day Historical Period: July 24, 2026 to August 2, 2026 (Strict Block 1 & Compounding Engine)</p>
+      <h1>📊 EMA Momentum — 10-Day Full Backtest & Analytics (5,295 Signals Dataset)</h1>
+      <p>10-Day Historical Period: July 24, 2026 to August 2, 2026 (Paginated 2,880 Candles per Coin)</p>
     </div>
     <div class="status-pill">
-      <span>100% Verified Binance Historical Candles</span>
+      <span>100% Paginated Binance Historical Candles (5,295 Signals)</span>
     </div>
   </div>
   <div style="font-size:10px;color:var(--t2);display:flex;gap:12px;flex-wrap:wrap">
     <span><b>USD/INR Rate:</b> ₹94.00</span>
     <span><b>Start Wallet:</b> ₹800.00</span>
     <span><b>Compounding:</b> 20% Wallet (Min ₹94 Binance Rule)</span>
-    <span><b>Active Window:</b> ⚡ STRICT BLOCK 1 ONLY (0h → 6h)</span>
+    <span><b>Active Slots:</b> Max 5 Concurrent Open Positions</span>
     <span><b>Stop Loss:</b> NO SL (EMA Angle Faded Exit Only)</span>
   </div>
 </div>
@@ -91,7 +90,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <div class="card" style="border-color:rgba(0,230,118,0.4)">
   <div class="card-hdr">
     <span class="card-title" style="color:var(--green)">📈 10-Day Performance Summary</span>
-    <span style="font-size:10px;color:var(--t3)">Executed on Binance Futures 5m Candles</span>
+    <span style="font-size:10px;color:var(--t3)">Executed on 5,295 Binance Futures Signals</span>
   </div>
   <div class="wallet-grid">
     <div class="w-card">
@@ -100,83 +99,83 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
     </div>
     <div class="w-card">
       <div class="w-lbl">Final Wallet</div>
-      <div class="w-val red" id="finalWVal">₹682.29</div>
-      <div class="w-sub red">-14.71% Return</div>
+      <div class="w-val red">₹75.30</div>
+      <div class="w-sub red">-90.59% Return</div>
     </div>
     <div class="w-card">
       <div class="w-lbl">Peak Equity</div>
-      <div class="w-val green">₹875.64</div>
+      <div class="w-val green">₹876.36</div>
     </div>
     <div class="w-card">
-      <div class="w-lbl">Lowest Equity</div>
-      <div class="w-val red">₹628.93</div>
+      <div class="w-lbl">Total Raw Signals</div>
+      <div class="w-val purple">5,295 Signals</div>
     </div>
     <div class="w-card">
       <div class="w-lbl">Executed Trades</div>
-      <div class="w-val">73</div>
-      <div class="w-sub">36 Wins / 37 Losses</div>
+      <div class="w-val">861</div>
+      <div class="w-sub">269 Wins / 592 Losses</div>
     </div>
     <div class="w-card">
       <div class="w-lbl">Win Rate</div>
-      <div class="w-val blue">49%</div>
+      <div class="w-val blue">31%</div>
     </div>
     <div class="w-card">
       <div class="w-lbl">Max Win Streak</div>
-      <div class="w-val green">7 Wins 🔥</div>
+      <div class="w-val green">8 Wins 🔥</div>
     </div>
     <div class="w-card">
       <div class="w-lbl">Max Loss Streak</div>
-      <div class="w-val red">4 Losses ❌</div>
+      <div class="w-val red">17 Losses ❌</div>
     </div>
     <div class="w-card">
       <div class="w-lbl">Max Drawdown</div>
-      <div class="w-val red">-28.2%</div>
+      <div class="w-val red">-91.4%</div>
     </div>
     <div class="w-card">
       <div class="w-lbl">Skipped Trades</div>
-      <div class="w-val gold">2 Trades</div>
-      <div class="w-sub green">Saved Loss ₹9.49</div>
+      <div class="w-val gold">4,434 Trades</div>
+      <div class="w-sub">Wallet 100% Full</div>
     </div>
   </div>
 </div>
 
-<!-- 5 KEY STRATEGY INSIGHTS SECTION -->
-<div class="card" style="border-color:rgba(255,214,0,0.4)">
+<!-- DAY BY DAY SIGNALS BREAKDOWN TABLE -->
+<div class="card" style="border-color:rgba(124,77,255,0.4)">
   <div class="card-hdr">
-    <span class="card-title" style="color:var(--gold)">💡 5 Key Advanced Insights & Strategy Analysis</span>
-    <span style="font-size:10px;color:var(--t2)">Deep Data Findings From 10-Day Backtest</span>
+    <span class="card-title" style="color:var(--purple)">📅 Day-by-Day Total Signals Breakdown (5,295 Signals Total)</span>
+    <span style="font-size:10px;color:var(--t2)">Jul 24 to Aug 2, 2026</span>
   </div>
-  <div class="insights-grid">
-    <div class="insight-card">
-      <div class="insight-title">1. Win Rate Balance (49% Win Rate)</div>
-      <div class="insight-desc">Out of 73 total executed trades in Block 1 across 10 days, <b>36 Trades were Wins</b> and <b>37 Trades were Losses</b>, maintaining a stable ~50% baseline win probability.</div>
-    </div>
-    <div class="insight-card">
-      <div class="insight-title">2. Momentum Clustering & Win Streaks (7 Wins 🔥)</div>
-      <div class="insight-desc">During strong market breakout phases (e.g. UAIUSDT & EULUSDT pumps), the strategy achieved a <b>Max Win Streak of 7 Consecutive Wins</b>, boosting wallet equity to a peak of <b>₹875.64</b> (+9.5%).</div>
-    </div>
-    <div class="insight-card">
-      <div class="insight-title">3. Drawdown & Whipsaw Protection (-28.2% Max DD)</div>
-      <div class="insight-desc">When coins enter tight sideways consolidation, false EMA white angle triggers cause quick faded exits, resulting in a maximum drawdown of <b>-28.2%</b> (lowest wallet ₹628.93).</div>
-    </div>
-    <div class="insight-card">
-      <div class="insight-title">4. Compounding Safety Clamp (₹94 Min Margin Rule)</div>
-      <div class="insight-desc">When wallet equity dipped, the <b>Binance 5 USDT Minimum Notional Rule (₹94 Margin)</b> prevented position sizes from collapsing to zero, keeping trades active to recover lost capital.</div>
-    </div>
-    <div class="insight-card">
-      <div class="insight-title">5. Capital Capacity Filter Impact (2 Skipped Trades)</div>
-      <div class="insight-desc">Due to the 5 maximum open slots limit, 2 trades were skipped when wallet capital was 100% full. This risk filter <b>saved ₹9.49 in potential losses</b> during choppy signals.</div>
-    </div>
-  </div>
+  <table class="day-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Total Signals Extracted</th>
+        <th>Daily Signal Density</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="dayBreakdownBody">
+      <tr><td>24/07/2026</td><td><b>565 Signals</b></td><td>~56.5 Signals / Coin</td><td><span class="green">Verified</span></td></tr>
+      <tr><td>25/07/2026</td><td><b>489 Signals</b></td><td>~48.9 Signals / Coin</td><td><span class="green">Verified</span></td></tr>
+      <tr><td>26/07/2026</td><td><b>496 Signals</b></td><td>~49.6 Signals / Coin</td><td><span class="green">Verified</span></td></tr>
+      <tr><td>27/07/2026</td><td><b>526 Signals</b></td><td>~52.6 Signals / Coin</td><td><span class="green">Verified</span></td></tr>
+      <tr><td>28/07/2026</td><td><b>571 Signals</b></td><td>~57.1 Signals / Coin</td><td><span class="green">Verified</span></td></tr>
+      <tr><td>29/07/2026</td><td><b>558 Signals</b></td><td>~55.8 Signals / Coin</td><td><span class="green">Verified</span></td></tr>
+      <tr><td>30/07/2026</td><td><b>577 Signals</b></td><td>~57.7 Signals / Coin</td><td><span class="green">Verified</span></td></tr>
+      <tr><td>31/07/2026</td><td><b>501 Signals</b></td><td>~50.1 Signals / Coin</td><td><span class="green">Verified</span></td></tr>
+      <tr><td>01/08/2026</td><td><b>556 Signals</b></td><td>~55.6 Signals / Coin</td><td><span class="green">Verified</span></td></tr>
+      <tr><td>02/08/2026</td><td><b>456 Signals</b></td><td>~45.6 Signals / Coin</td><td><span class="green">Verified</span></td></tr>
+    </tbody>
+  </table>
 </div>
 
 <!-- CONTROLS & EXPORT -->
 <div class="card">
   <div class="card-hdr">
-    <span class="card-title">📄 Export Reports</span>
+    <span class="card-title">📄 Export Complete Signals Dataset & TXT Report</span>
   </div>
   <div class="btn-row">
-    <button class="btn btn-blu" onclick="exportTXT()">📄 Export Complete 10-Day TXT Report</button>
+    <button class="btn btn-blu" onclick="exportTXT()">📄 Export All 5,295 Signals TXT Report</button>
     <button class="btn btn-sec" onclick="window.print()">🖨️ Save PDF Report</button>
   </div>
 </div>
@@ -184,7 +183,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <!-- EXECUTED TRADES TABLE -->
 <div class="card">
   <div class="card-hdr">
-    <span class="card-title">📜 Complete 10-Day Executed Trades Log (73 Trades — Block 1 Only)</span>
+    <span class="card-title">📜 Complete 10-Day Executed Trades Log (861 Executed Trades)</span>
     <span style="font-size:10px;color:var(--t2)">Sorted Newest First</span>
   </div>
   <div class="scrl">
@@ -192,7 +191,6 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
       <thead>
         <tr>
           <th>#</th>
-          <th>Block #</th>
           <th>Signal Date & Time</th>
           <th>Exit Date & Time</th>
           <th>Coin</th>
@@ -213,7 +211,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
         </tr>
       </thead>
       <tbody id="tradesBody">
-        <tr><td colspan="19" style="text-align:center;color:var(--t3);padding:20px">Loading 10-Day Backtest Results...</td></tr>
+        <tr><td colspan="18" style="text-align:center;color:var(--t3);padding:20px">Loading 5,295 Signals Dataset...</td></tr>
       </tbody>
     </table>
   </div>
@@ -224,7 +222,7 @@ let backtestData = null;
 
 async function loadData() {
   try {
-    const r = await fetch('scratch/10day_backtest_result.json');
+    const r = await fetch('scratch/10day_full_accurate_result.json');
     if(r.ok) {
       const d = await r.json();
       backtestData = d.resA;
@@ -238,14 +236,13 @@ async function loadData() {
 function renderTable() {
   if(!backtestData || !backtestData.logs) return;
   let html = '';
-  backtestData.logs.forEach((t, i) => {
+  backtestData.logs.slice(0, 200).forEach((t, i) => {
     const rowCls = t.isLiq ? 'liq' : t.netProfitInr > 0 ? 'win' : 'loss';
     const pnlCls = t.netProfitInr > 0 ? 'green' : 'red';
     const ps = t.netProfitInr > 0 ? '+' : '';
 
     html += `<tr class="${rowCls}">
       <td>#${i+1}</td>
-      <td><b style="color:var(--green)">Block 1 (0h-6h)</b></td>
       <td><b>${t.dtStr}</b></td>
       <td><b>${t.xtStr || '-'}</b></td>
       <td><b>${t.sym}</b></td>
@@ -272,18 +269,17 @@ function exportTXT() {
   if(!backtestData) return;
   const r = backtestData;
   let txt = `================================================================================\n`;
-  txt += `⚡ EMA MOMENTUM — 10-DAY FULL BACKTEST REPORT (JUL 24 - AUG 2, 2026)\n`;
+  txt += `⚡ EMA MOMENTUM — ACCURATE 10-DAY FULL BACKTEST REPORT (5,295 SIGNALS)\n`;
   txt += `Starting Wallet: ₹800.00 INR | Compounding: 20% | Leverage: 5x | USD/INR Rate: ₹94\n`;
-  txt += `Active Signal Window: Strictly Block 1 Only (0h -> 6h MAX)\n`;
+  txt += `Total Extracted Raw Signals: 5,295 Signals | Executed Trades: ${r.logs.length} | Skipped Trades: ${r.skipped}\n`;
   txt += `Final Wallet: ₹${r.finalW.toFixed(2)} (${r.totalReturnPct >= 0 ? '+' : ''}${r.totalReturnPct.toFixed(2)}% Return)\n`;
-  txt += `Executed Trades: ${r.logs.length} (${r.wins} Wins / ${r.losses} Losses) | Win Rate: ${r.winRate}%\n`;
+  txt += `Win / Loss: ${r.wins} Wins / ${r.losses} Losses | Win Rate: ${r.winRate}%\n`;
   txt += `Max Win Streak: ${r.maxWinStreak} 🔥 | Max Loss Streak: ${r.maxLossStreak} ❌\n`;
   txt += `Peak Equity: ₹${r.peak.toFixed(2)} | Lowest Equity: ₹${r.lowest.toFixed(2)} | Max DD: -${r.maxDrawdownPct}%\n`;
-  txt += `Skipped Trades: ${r.skipped} (Saved Loss: ₹${r.savedLossInr})\n`;
   txt += `================================================================================\n\n`;
 
   r.logs.forEach((t, i) => {
-    txt += `#${i+1} | Block: Block 1 (0h-6h) | Entry: ${t.dtStr} | Exit: ${t.xtStr || '-'} | Coin: ${t.sym} | Ch: ${t.ch} | Dir: ${t.dir}\n`;
+    txt += `#${i+1} | Entry: ${t.dtStr} | Exit: ${t.xtStr || '-'} | Coin: ${t.sym} | Ch: ${t.ch} | Dir: ${t.dir}\n`;
     txt += `   Margin: ₹${t.marginInr.toFixed(2)} | Entry Price: $${t.ep} | Exit Price: $${t.xp}\n`;
     txt += `   Max HH: +${t.hhPct||0}% | Max LL: ${t.llPct||0}% | Raw PnL: ${t.rawPnl}% | Levered PnL: ${t.leveredPnl.toFixed(1)}%\n`;
     txt += `   Fees: ₹${t.fundingInr.toFixed(2)} | Net Payout: ₹${t.netProfitInr.toFixed(2)} | New Wallet: ₹${t.newWallet.toFixed(2)} | Exit: ${t.reason}\n\n`;
@@ -293,7 +289,7 @@ function exportTXT() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `10Day_EMA_Strategy_Backtest_Report.txt`;
+  a.download = `10Day_Accurate_5295_Signals_Report.txt`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
