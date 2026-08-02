@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>EMA Momentum — Live Wallet Simulator v20 (Gainer Origin in Trade History)</title>
+<title>EMA Momentum — Live Wallet Simulator v21 (Multi-Day History & Block 1-4 Trade Tagging)</title>
 <meta name="theme-color" content="#060810">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -109,8 +109,8 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <div class="hdr">
   <div class="hdr-top">
     <div class="title-box">
-      <h1>⚡ EMA Momentum — Live Wallet Simulator v20</h1>
-      <p>Gainer Origin Status Badges in Trade History & TXT Export Reports</p>
+      <h1>⚡ EMA Momentum — Live Wallet Simulator v21</h1>
+      <p>Multi-Day Historical Trades (Yesterday + Today) & Block 1-4 Trade Tagging</p>
     </div>
     <div class="status-pill">
       <span class="dot"></span>
@@ -212,18 +212,19 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
       </select>
     </div>
     <div class="input-box">
-      <label>Active Window</label>
+      <label>Active Trade Window</label>
       <select id="windowSelect" onchange="runSimulation()">
         <option value="6" selected>0h → 6h (Block 1 Only - Recommended)</option>
         <option value="12">0h → 12h (Block 1 + Block 2)</option>
-        <option value="24">0h → 24h (Full Day 1)</option>
+        <option value="24">0h → 24h (Full Day 1: Block 1-4)</option>
+        <option value="999">Full Multi-Day History (Yesterday + Today)</option>
       </select>
     </div>
   </div>
 
   <div class="btn-row">
-    <button class="btn btn-grn" onclick="scanBinanceLiveNow()">🔄 Scan Live Binance Gainers & Positions Now</button>
-    <button class="btn btn-blu" onclick="exportSimTXT()">📄 Export Executed & Skipped Trades TXT Report</button>
+    <button class="btn btn-grn" onclick="scanBinanceLiveNow()">🔄 Scan Live Binance Gainers & Multi-Day Trades Now</button>
+    <button class="btn btn-blu" onclick="exportSimTXT()">📄 Export Multi-Day Trades TXT Report</button>
     <button class="btn btn-red" onclick="resetLiveSession()">🗑️ Reset & Start Clean Session From Today</button>
     <button class="btn btn-sec" onclick="window.print()">🖨️ Save PDF Report</button>
   </div>
@@ -352,7 +353,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
         <!-- Dynamic Header -->
       </thead>
       <tbody id="tradeLogBody">
-        <tr><td colspan="19" style="text-align:center;color:var(--t3);padding:20px">Reconstructing Binance 24h All-Coins Top 5 Gainers & EMA Signals...</td></tr>
+        <tr><td colspan="20" style="text-align:center;color:var(--t3);padding:20px">Reconstructing Binance 24h All-Coins Top 5 Gainers & EMA Signals...</td></tr>
       </tbody>
     </table>
   </div>
@@ -372,10 +373,10 @@ const FAST_THR = 12.0, SLOW_THR = 8.0;
 const STABLE = ['USDC','BUSD','FDUSD','TUSD','DAI','USDP','AEUR'];
 
 // LocalStorage Persistence Keys
-const LS_TRADES_KEY = 'EMA_LIVE_TRADES_V20';
-const LS_GAINERS_KEY = 'EMA_LIVE_GAINERS_V20';
-const LS_OPEN_POS_KEY = 'EMA_OPEN_POSITIONS_V20';
-const LS_LAST_ACTIVE_KEY = 'EMA_LAST_ACTIVE_TS_V20';
+const LS_TRADES_KEY = 'EMA_LIVE_TRADES_V21';
+const LS_GAINERS_KEY = 'EMA_LIVE_GAINERS_V21';
+const LS_OPEN_POS_KEY = 'EMA_OPEN_POSITIONS_V21';
+const LS_LAST_ACTIVE_KEY = 'EMA_LAST_ACTIVE_TS_V21';
 
 function loadStoredTrades() {
   const data = localStorage.getItem(LS_TRADES_KEY);
@@ -441,6 +442,15 @@ function switchLogTable(mode) {
   renderTradesTable();
 }
 
+// HELPER FUNCTION TO GET BLOCK NAME FROM ELAPSED HOURS
+function getBlockName(elapsedH) {
+  if(elapsedH < 6) return 'Block 1 (0h-6h)';
+  if(elapsedH < 12) return 'Block 2 (6h-12h)';
+  if(elapsedH < 18) return 'Block 3 (12h-18h)';
+  if(elapsedH < 24) return 'Block 4 (18h-24h)';
+  return 'Post-24h Extended';
+}
+
 // PURE PINE SCRIPT EMA & ATR CALCULATIONS
 function ema(arr,p){
   const k=2/(p+1);let v=arr[0];const out=[v];
@@ -467,7 +477,7 @@ function angle(emaArr,atrArr,i,lb){
 function findIndividualPumpStart(klines, openPrice, lastPrice, pumpPct) {
   if(!klines || klines.length < 20) return { time: Date.now() - 3600000, price: lastPrice };
   const now = Date.now();
-  const searchK = klines.filter(k => k[0] >= (now - 24 * 3600 * 1000));
+  const searchK = klines.filter(k => k[0] >= (now - 72 * 3600 * 1000)); // SEARCH UP TO 3 DAYS
   if(!searchK.length) return { time: now - 3600000, price: lastPrice };
 
   const prePumpPrice = openPrice > 0 ? openPrice : lastPrice / (1 + Math.abs(pumpPct) / 100);
@@ -501,7 +511,8 @@ async function getBinance24hTickers() {
   }
 }
 
-async function getBinanceKlines(sym, limit=200) {
+// FETCH UP TO 1000 KLINES (~3.5 DAYS OF 5M CANDLES TO RECONSTRUCT YESTERDAY'S TRADES)
+async function getBinanceKlines(sym, limit=1000) {
   try {
     const r = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=5m&limit=${limit}`);
     if(!r.ok) return null;
@@ -512,7 +523,7 @@ async function getBinanceKlines(sym, limit=200) {
   }
 }
 
-// STATE MACHINE SIGNAL ENGINE WITH LIVE OPEN POSITIONS EXTRACTION
+// STATE MACHINE SIGNAL ENGINE WITH BLOCK NUMBER TAGGING
 function runPineScriptStateAnalysis(klines, fromTs, sym) {
   if(!klines || klines.length < 55) return { closedTrades: [], openPositions: [] };
 
@@ -548,6 +559,7 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
       } else if(pF && !fW && openFast) {
         const isUp = openFast.dir === 'UP';
         const rawPnl = isUp ? ((c - openFast.ep) / openFast.ep * 100) : ((openFast.ep - c) / openFast.ep * 100);
+        const elapsedH = parseFloat(((openFast.et - fromTs) / (3600 * 1000)).toFixed(1));
         closedTrades.push({
           tradeKey: `${sym}_fast_${openFast.et}`,
           sym, ch: 'fast', dir: openFast.dir,
@@ -561,7 +573,8 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
           dur: Math.round((t - openFast.et) / 60000),
           reason: 'Fast Faded',
           gainerFromTs: fromTs,
-          elapsedH: parseFloat(((openFast.et - fromTs) / (3600 * 1000)).toFixed(1))
+          elapsedH: elapsedH,
+          blockName: getBlockName(elapsedH)
         });
         openFast = null;
       }
@@ -571,6 +584,7 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
       } else if(pS && !sW && openSlow) {
         const isUp = openSlow.dir === 'UP';
         const rawPnl = isUp ? ((c - openSlow.ep) / openSlow.ep * 100) : ((openSlow.ep - c) / openSlow.ep * 100);
+        const elapsedH = parseFloat(((openSlow.et - fromTs) / (3600 * 1000)).toFixed(1));
         closedTrades.push({
           tradeKey: `${sym}_slow_${openSlow.et}`,
           sym, ch: 'slow', dir: openSlow.dir,
@@ -584,7 +598,8 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
           dur: Math.round((t - openSlow.et) / 60000),
           reason: 'Slow Faded',
           gainerFromTs: fromTs,
-          elapsedH: parseFloat(((openSlow.et - fromTs) / (3600 * 1000)).toFixed(1))
+          elapsedH: elapsedH,
+          blockName: getBlockName(elapsedH)
         });
         openSlow = null;
       }
@@ -594,6 +609,7 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
       } else if(pB && !bW && openBoth) {
         const isUp = openBoth.dir === 'UP';
         const rawPnl = isUp ? ((c - openBoth.ep) / openBoth.ep * 100) : ((openBoth.ep - c) / openBoth.ep * 100);
+        const elapsedH = parseFloat(((openBoth.et - fromTs) / (3600 * 1000)).toFixed(1));
         closedTrades.push({
           tradeKey: `${sym}_bothEither_${openBoth.et}`,
           sym, ch: 'bothEither', dir: openBoth.dir,
@@ -607,7 +623,8 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
           dur: Math.round((t - openBoth.et) / 60000),
           reason: !fW ? 'Fast Faded First' : 'Slow Faded First',
           gainerFromTs: fromTs,
-          elapsedH: parseFloat(((openBoth.et - fromTs) / (3600 * 1000)).toFixed(1))
+          elapsedH: elapsedH,
+          blockName: getBlockName(elapsedH)
         });
         openBoth = null;
       }
@@ -627,30 +644,36 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
   if(openFast) {
     const isUp = openFast.dir === 'UP';
     const curPnl = isUp ? ((currentPrice - openFast.ep) / openFast.ep * 100) : ((openFast.ep - currentPrice) / openFast.ep * 100);
+    const elapsedH = parseFloat(((openFast.et - fromTs) / (3600 * 1000)).toFixed(1));
     openPosList.push({
       sym, ch: 'fast', dir: openFast.dir, et: openFast.et,
       dtStr: new Date(openFast.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
-      ep: openFast.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2)), gainerFromTs: fromTs
+      ep: openFast.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2)), gainerFromTs: fromTs,
+      blockName: getBlockName(elapsedH)
     });
   }
 
   if(openSlow) {
     const isUp = openSlow.dir === 'UP';
     const curPnl = isUp ? ((currentPrice - openSlow.ep) / openSlow.ep * 100) : ((openSlow.ep - currentPrice) / openSlow.ep * 100);
+    const elapsedH = parseFloat(((openSlow.et - fromTs) / (3600 * 1000)).toFixed(1));
     openPosList.push({
       sym, ch: 'slow', dir: openSlow.dir, et: openSlow.et,
       dtStr: new Date(openSlow.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
-      ep: openSlow.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2)), gainerFromTs: fromTs
+      ep: openSlow.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2)), gainerFromTs: fromTs,
+      blockName: getBlockName(elapsedH)
     });
   }
 
   if(openBoth) {
     const isUp = openBoth.dir === 'UP';
     const curPnl = isUp ? ((currentPrice - openBoth.ep) / openBoth.ep * 100) : ((openBoth.ep - currentPrice) / openBoth.ep * 100);
+    const elapsedH = parseFloat(((openBoth.et - fromTs) / (3600 * 1000)).toFixed(1));
     openPosList.push({
       sym, ch: 'bothEither', dir: openBoth.dir, et: openBoth.et,
       dtStr: new Date(openBoth.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
-      ep: openBoth.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2)), gainerFromTs: fromTs
+      ep: openBoth.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2)), gainerFromTs: fromTs,
+      blockName: getBlockName(elapsedH)
     });
   }
 
@@ -734,7 +757,7 @@ function renderLiveOpenPositions() {
     const sign = leveredPnlPct >= 0 ? '+' : '';
 
     const isBlock1Active = (p.gainerFromTs && (now - p.gainerFromTs) < 6 * 3600 * 1000);
-    const originBadge = isBlock1Active ? `<span style="background:rgba(0,230,118,0.15);color:var(--green);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700">🔥 Live Block 1 Gainer</span>` : `<span style="background:rgba(255,152,0,0.15);color:var(--orange);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700">📜 Historical Gainer (Block 1 Expired)</span>`;
+    const originBadge = isBlock1Active ? `<span style="background:rgba(0,230,118,0.15);color:var(--green);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700">🔥 Live Block 1 Gainer</span>` : `<span style="background:rgba(255,152,0,0.15);color:var(--orange);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700">📜 Historical Gainer (${p.blockName || 'Block Expired'})</span>`;
 
     html += `<div class="open-pos-card">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -760,7 +783,7 @@ function renderLiveOpenPositions() {
 
 // MAIN RECONSTRUCTION SCANNER WITH INDIVIDUAL PUMP TIMESTAMP DISCOVERY & OPEN POSITIONS
 async function scanBinanceLiveNow() {
-  document.getElementById('connStatus').textContent = 'Reconstructing 24h All-Coins Top Gainers...';
+  document.getElementById('connStatus').textContent = 'Reconstructing Multi-Day Top Gainers (Yesterday + Today)...';
 
   const lastActiveTs = localStorage.getItem(LS_LAST_ACTIVE_KEY);
   const now = Date.now();
@@ -772,7 +795,7 @@ async function scanBinanceLiveNow() {
       const recTxt = document.getElementById('recTxt');
       recBar.style.display = 'flex';
       const gapHours = (elapsedMinutes / 60).toFixed(1);
-      recTxt.textContent = `🔄 Phone/App reopened after ${gapHours} hours offline! Refining individual coin pump timestamps & missed EMA signals...`;
+      recTxt.textContent = `🔄 Phone/App reopened after ${gapHours} hours offline! Refining multi-day pump timestamps & missed EMA signals...`;
       setTimeout(() => { recBar.style.display = 'none'; }, 8000);
     }
   }
@@ -785,7 +808,7 @@ async function scanBinanceLiveNow() {
   }
 
   allTickers.sort((a,b) => +b.priceChangePercent - +a.priceChangePercent);
-  const candidateGainers = allTickers.slice(0, 10);
+  const candidateGainers = allTickers.slice(0, 15);
 
   const storedGainers = loadStoredGainers();
   const storedTrades = loadStoredTrades();
@@ -793,7 +816,7 @@ async function scanBinanceLiveNow() {
 
   for(let g of candidateGainers) {
     let existingGainer = storedGainers.find(x => x.sym === g.symbol);
-    const klines = await getBinanceKlines(g.symbol, 180);
+    const klines = await getBinanceKlines(g.symbol, 1000); // 1000 CANDLES = ~3.5 DAYS OF HISTORY!
 
     if(klines && klines.length >= 55) {
       const pumpInfo = findIndividualPumpStart(klines, parseFloat(g.openPrice), parseFloat(g.lastPrice), parseFloat(g.priceChangePercent));
@@ -858,7 +881,7 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
   const executedLogs = [];
   const skippedLogs = [];
 
-  const day1Trades = tradesArr.filter(t => t.ch !== 'bothBoth' && t.elapsedH >= 0 && t.elapsedH < windowHours);
+  const day1Trades = tradesArr.filter(t => t.ch !== 'bothBoth' && t.elapsedH >= 0 && (windowHours >= 999 || t.elapsedH < windowHours));
   day1Trades.sort((a,b) => a.et - b.et);
 
   for(const t of day1Trades) {
@@ -1020,6 +1043,7 @@ function renderTradesTable() {
   if(activeLogTab === 'executed') {
     headerEl.innerHTML = `<tr>
       <th>#</th>
+      <th>Block #</th>
       <th>Gainer Origin Status</th>
       <th>Entry Date & Time</th>
       <th>Exit Date & Time</th>
@@ -1042,7 +1066,7 @@ function renderTradesTable() {
 
     let logsHtml = '';
     if(r.logs.length === 0) {
-      logsHtml = `<tr><td colspan="19" style="text-align:center;color:var(--t3);padding:25px">No live trades recorded yet today. Click "Scan Live Binance Gainers & Positions Now" to scan Binance API live!</td></tr>`;
+      logsHtml = `<tr><td colspan="20" style="text-align:center;color:var(--t3);padding:25px">No live trades recorded yet today. Click "Scan Live Binance Gainers & Multi-Day Trades Now" to scan Binance API live!</td></tr>`;
     } else {
       r.logs.forEach((t, i) => {
         const rowCls = t.isLiq ? 'liq' : t.netProfitInr > 0 ? 'win' : 'loss';
@@ -1054,6 +1078,7 @@ function renderTradesTable() {
 
         logsHtml += `<tr class="${rowCls}">
           <td>#${i+1}</td>
+          <td><b style="color:var(--purple)">${t.blockName || getBlockName(t.elapsedH)}</b></td>
           <td>${originTag}</td>
           <td><b>${t.dtStr}</b></td>
           <td><b>${t.xtStr || '-'}</b></td>
@@ -1078,9 +1103,10 @@ function renderTradesTable() {
     bodyEl.innerHTML = logsHtml;
 
   } else {
-    // SKIPPED TRADES TABLE WITH GAINER ORIGIN TAG
+    // SKIPPED TRADES TABLE WITH BLOCK NUMBER TAG
     headerEl.innerHTML = `<tr>
       <th>#</th>
+      <th>Block #</th>
       <th>Gainer Origin Status</th>
       <th>Signal Date & Time</th>
       <th>Coin</th>
@@ -1097,7 +1123,7 @@ function renderTradesTable() {
 
     let logsHtml = '';
     if(!r.skippedLogs || r.skippedLogs.length === 0) {
-      logsHtml = `<tr><td colspan="13" style="text-align:center;color:var(--t3);padding:25px">No trades skipped yet. Capital & position limits are fully available.</td></tr>`;
+      logsHtml = `<tr><td colspan="14" style="text-align:center;color:var(--t3);padding:25px">No trades skipped yet. Capital & position limits are fully available.</td></tr>`;
     } else {
       r.skippedLogs.forEach((t, i) => {
         const pnlCls = t.hypProfitInr > 0 ? 'green' : 'red';
@@ -1107,6 +1133,7 @@ function renderTradesTable() {
 
         logsHtml += `<tr>
           <td>#${i+1}</td>
+          <td><b style="color:var(--purple)">${t.blockName || getBlockName(t.elapsedH)}</b></td>
           <td>${originTag}</td>
           <td><b>${t.dtStr}</b></td>
           <td><b>${t.sym}</b></td>
@@ -1131,7 +1158,7 @@ function runSimulation() {
   const initW = parseFloat(document.getElementById('initWalletInput').value) || 800;
   const compPct = parseFloat(document.getElementById('compPctInput').value) || 20;
   const activeLev = parseInt(document.getElementById('levSelect').value) || 5;
-  const windowH = parseInt(document.getElementById('windowSelect').value) || 6;
+  const windowH = parseFloat(document.getElementById('windowSelect').value) || 6;
 
   renderGainersPanels();
   renderLiveOpenPositions();
@@ -1210,14 +1237,14 @@ function exportSimTXT() {
   const inrRate = document.getElementById('inrRateInput').value;
 
   let txt = `================================================================================\n`;
-  txt += `⚡ EMA MOMENTUM — LIVE BINANCE 24H RECONSTRUCTOR FULL REPORT v20\n`;
+  txt += `⚡ EMA MOMENTUM — LIVE BINANCE 24H RECONSTRUCTOR FULL MULTI-DAY REPORT v21\n`;
   txt += `Strategy: Strategy ${currentStrategy} | USD/INR Rate: ₹${inrRate}\n`;
   txt += `Starting Wallet: ₹${initW} INR | Compounding: 20% | Leverage: ${activeLev}x\n`;
-  txt += `Active Window: 0h -> ${windowH}h (Block 1 Filter)\n`;
+  txt += `Active Window: 0h -> ${windowH}h (${windowH == 999 ? 'Full Multi-Day History: Yesterday + Today' : 'Block Window Filter'})\n`;
   txt += `Total Executed Trades: ${r.logs.length} | Total Skipped Trades: ${r.skipped}\n`;
   txt += `Final Wallet Balance: ₹${r.finalWallet.toFixed(2)} (${r.totalReturnPct >= 0 ? '+' : ''}${r.totalReturnPct.toFixed(2)}% Return)\n`;
   txt += `Skipped Trades Impact: Missed Profit ₹${r.missedProfitInr} | Saved Loss ₹${r.savedLossInr} | Net Impact ₹${r.netFilterImpact}\n`;
-  txt += `Generated: ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})}\n`;
+  txt += `Generated: ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})\n}`;
   txt += `================================================================================\n\n`;
 
   txt += `--------------------------------------------------------------------------------\n`;
@@ -1226,7 +1253,7 @@ function exportSimTXT() {
   r.logs.forEach((t, i) => {
     const isBlock1Active = (t.gainerFromTs && (Date.now() - t.gainerFromTs) < 6 * 3600 * 1000);
     const originTag = isBlock1Active ? '🔥 Live Block 1 Gainer' : '📜 Historical Gainer (Block 1 Expired)';
-    txt += `#${i+1} | Gainer Status: ${originTag}\n`;
+    txt += `#${i+1} | Block: ${t.blockName || getBlockName(t.elapsedH)} | Gainer Status: ${originTag}\n`;
     txt += `   Entry: ${t.dtStr} | Exit: ${t.xtStr || '-'} | Coin: ${t.sym} | Ch: ${t.ch} | Dir: ${t.dir}\n`;
     txt += `   Margin: ₹${t.marginInr.toFixed(2)} | Entry Price: $${t.ep} | Exit Price: $${t.xp}\n`;
     txt += `   Max HH: +${t.hhPct||0}% | Max LL: ${t.llPct||0}% | Raw PnL: ${t.rawPnl}% | Levered PnL: ${t.leveredPnl.toFixed(1)}%\n`;
@@ -1239,7 +1266,7 @@ function exportSimTXT() {
   r.skippedLogs.forEach((t, i) => {
     const isBlock1Active = (t.gainerFromTs && (Date.now() - t.gainerFromTs) < 6 * 3600 * 1000);
     const originTag = isBlock1Active ? '🔥 Live Block 1 Gainer' : '📜 Historical Gainer (Block 1 Expired)';
-    txt += `#${i+1} | Gainer Status: ${originTag}\n`;
+    txt += `#${i+1} | Block: ${t.blockName || getBlockName(t.elapsedH)} | Gainer Status: ${originTag}\n`;
     txt += `   Signal Date/Time: ${t.dtStr} | Coin: ${t.sym} | Ch: ${t.ch} | Dir: ${t.dir}\n`;
     txt += `   Hypothetical Margin: ₹${t.marginInr.toFixed(2)} | Entry Price: $${t.ep} | Exit Price: $${t.xp}\n`;
     txt += `   Hypothetical PnL: ${t.leveredPnl.toFixed(1)}% (Hypothetical Payout: ₹${t.hypProfitInr.toFixed(2)})\n`;
@@ -1250,7 +1277,7 @@ function exportSimTXT() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `EMA_Live_Wallet_Simulator_${currentStrategy}_FULL_REPORT_${activeLev}x.txt`;
+  a.download = `EMA_Live_Wallet_Simulator_${currentStrategy}_MULTI_DAY_REPORT_${activeLev}x.txt`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
