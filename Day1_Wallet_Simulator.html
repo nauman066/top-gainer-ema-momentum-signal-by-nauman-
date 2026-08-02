@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>EMA Momentum — Live Wallet Simulator v18 (Live Open Positions & HH/LL Trade Log)</title>
+<title>EMA Momentum — Live Wallet Simulator v19 (Skipped Trades Table & Export)</title>
 <meta name="theme-color" content="#060810">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -84,6 +84,10 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 .trade-table td{text-align:left}
 .matrix-table tr:hover, .trade-table tr:hover{background:rgba(255,255,255,0.02)}
 
+/* TAB BUTTONS FOR TRADES LOG */
+.tab-log-btn{padding:8px 16px;border-radius:8px;font-size:11px;font-weight:800;border:1px solid var(--border);cursor:pointer;background:rgba(255,255,255,0.05);color:var(--t2);transition:all 0.2s}
+.tab-log-btn.active-log{background:linear-gradient(135deg,#00E676,#00B0FF);color:#000;border-color:#fff;box-shadow:0 0 10px rgba(0,230,118,0.3)}
+
 .green{color:var(--green);font-weight:700}.red{color:var(--red);font-weight:700}.gold{color:var(--gold);font-weight:700}.blue{color:var(--blue);font-weight:700}.purple{color:var(--purple);font-weight:700}
 
 /* BTNS */
@@ -105,8 +109,8 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 <div class="hdr">
   <div class="hdr-top">
     <div class="title-box">
-      <h1>⚡ EMA Momentum — Live Wallet Simulator v18</h1>
-      <p>Live Open Positions Panel, Entry/Exit Times & HH/LL Performance Analytics</p>
+      <h1>⚡ EMA Momentum — Live Wallet Simulator v19</h1>
+      <p>Live Positions Origin Badges, Interactive Skipped Trades Log & Complete TXT Export</p>
     </div>
     <div class="status-pill">
       <span class="dot"></span>
@@ -219,7 +223,7 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 
   <div class="btn-row">
     <button class="btn btn-grn" onclick="scanBinanceLiveNow()">🔄 Scan Live Binance Gainers & Positions Now</button>
-    <button class="btn btn-blu" onclick="exportSimTXT()">📄 Export Live Trades TXT Report</button>
+    <button class="btn btn-blu" onclick="exportSimTXT()">📄 Export Executed & Skipped Trades TXT Report</button>
     <button class="btn btn-red" onclick="resetLiveSession()">🗑️ Reset & Start Clean Session From Today</button>
     <button class="btn btn-sec" onclick="window.print()">🖨️ Save PDF Report</button>
   </div>
@@ -329,35 +333,23 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
   </div>
 </div>
 
-<!-- TRADES HISTORY LOG (WITH ENTRY/EXIT TIMES & HH/LL COLUMNS) -->
+<!-- TRADES HISTORY LOG (TOGGLE BETWEEN EXECUTED & SKIPPED TRADES) -->
 <div class="card">
   <div class="card-hdr">
-    <span class="card-title">📜 Executed Paper Trades Log (Sorted Newest First — Entry/Exit Times & HH/LL Analysis)</span>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <button id="tabExecutedBtn" class="tab-log-btn active-log" onclick="switchLogTable('executed')">
+        🟢 Executed Trades Log (<span id="executedCntTab">0</span>)
+      </button>
+      <button id="tabSkippedBtn" class="tab-log-btn" onclick="switchLogTable('skipped')">
+        🟡 Skipped Trades Detailed Log (<span id="skippedCntTab">0</span>)
+      </button>
+    </div>
     <span id="tradeCntBadge" style="font-size:10px;color:var(--t2)">0 Trades</span>
   </div>
   <div class="scrl">
-    <table class="trade-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Entry Date & Time</th>
-          <th>Exit Date & Time</th>
-          <th>Coin</th>
-          <th>Channel</th>
-          <th>Dir</th>
-          <th>Margin (₹)</th>
-          <th>Lev</th>
-          <th>Entry $</th>
-          <th>Exit $</th>
-          <th>Max HH %</th>
-          <th>Max LL %</th>
-          <th>Raw PnL%</th>
-          <th>Levered PnL%</th>
-          <th>Fees (₹)</th>
-          <th>Payout (₹)</th>
-          <th>New Wallet (₹)</th>
-          <th>Exit Reason (NO SL)</th>
-        </tr>
+    <table class="trade-table" id="mainTradeTable">
+      <thead id="tradeTableHeader">
+        <!-- Dynamic Header -->
       </thead>
       <tbody id="tradeLogBody">
         <tr><td colspan="18" style="text-align:center;color:var(--t3);padding:20px">Reconstructing Binance 24h All-Coins Top 5 Gainers & EMA Signals...</td></tr>
@@ -368,6 +360,9 @@ body{background:var(--bg);color:var(--t1);min-height:100vh;display:flex;flex-dir
 
 <script>
 let currentStrategy = 'A';
+let activeLogTab = 'executed';
+let globalLatestSimResult = null;
+
 const BINANCE_MIN_NOTIONAL_USDT = 5.0;
 
 // PINE SCRIPT EXACT PARAMETERS (Momentum EMA | BR Trading Academy)
@@ -377,10 +372,10 @@ const FAST_THR = 12.0, SLOW_THR = 8.0;
 const STABLE = ['USDC','BUSD','FDUSD','TUSD','DAI','USDP','AEUR'];
 
 // LocalStorage Persistence Keys
-const LS_TRADES_KEY = 'EMA_LIVE_TRADES_V18';
-const LS_GAINERS_KEY = 'EMA_LIVE_GAINERS_V18';
-const LS_OPEN_POS_KEY = 'EMA_OPEN_POSITIONS_V18';
-const LS_LAST_ACTIVE_KEY = 'EMA_LAST_ACTIVE_TS_V18';
+const LS_TRADES_KEY = 'EMA_LIVE_TRADES_V19';
+const LS_GAINERS_KEY = 'EMA_LIVE_GAINERS_V19';
+const LS_OPEN_POS_KEY = 'EMA_OPEN_POSITIONS_V19';
+const LS_LAST_ACTIVE_KEY = 'EMA_LAST_ACTIVE_TS_V19';
 
 function loadStoredTrades() {
   const data = localStorage.getItem(LS_TRADES_KEY);
@@ -429,6 +424,21 @@ function switchStrategy(strat) {
     document.getElementById('activeStratTitle').textContent = '📈 Strategy B (Max ₹160 Cap/Coin) Performance Dashboard';
   }
   runSimulation();
+}
+
+function switchLogTable(mode) {
+  activeLogTab = mode;
+  const btnExec = document.getElementById('tabExecutedBtn');
+  const btnSkip = document.getElementById('tabSkippedBtn');
+
+  if(mode === 'executed') {
+    btnExec.className = 'tab-log-btn active-log';
+    btnSkip.className = 'tab-log-btn';
+  } else {
+    btnExec.className = 'tab-log-btn';
+    btnSkip.className = 'tab-log-btn active-log';
+  }
+  renderTradesTable();
 }
 
 // PURE PINE SCRIPT EMA & ATR CALCULATIONS
@@ -607,7 +617,7 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
     pF = fW; pS = sW; pB = bW;
   }
 
-  // Extract currently active open positions (line still white)
+  // Extract currently active open positions
   const openPosList = [];
   const currentPrice = closes[closes.length - 1];
 
@@ -617,7 +627,7 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
     openPosList.push({
       sym, ch: 'fast', dir: openFast.dir, et: openFast.et,
       dtStr: new Date(openFast.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
-      ep: openFast.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2))
+      ep: openFast.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2)), gainerFromTs: fromTs
     });
   }
 
@@ -627,7 +637,7 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
     openPosList.push({
       sym, ch: 'slow', dir: openSlow.dir, et: openSlow.et,
       dtStr: new Date(openSlow.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
-      ep: openSlow.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2))
+      ep: openSlow.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2)), gainerFromTs: fromTs
     });
   }
 
@@ -637,7 +647,7 @@ function runPineScriptStateAnalysis(klines, fromTs, sym) {
     openPosList.push({
       sym, ch: 'bothEither', dir: openBoth.dir, et: openBoth.et,
       dtStr: new Date(openBoth.et).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}),
-      ep: openBoth.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2))
+      ep: openBoth.ep, currentPrice, pnl: parseFloat(curPnl.toFixed(2)), gainerFromTs: fromTs
     });
   }
 
@@ -695,12 +705,12 @@ function renderGainersPanels() {
   document.getElementById('histGainerCntBadge').textContent = `${histCnt} Historical Logs`;
 }
 
-// RENDER LIVE ACTIVE OPEN POSITIONS PANEL
+// RENDER LIVE ACTIVE OPEN POSITIONS PANEL WITH ORIGIN BADGES
 function renderLiveOpenPositions() {
   const openCont = document.getElementById('openPosGridCont');
   const openPos = loadStoredOpenPositions();
   const activeLev = parseInt(document.getElementById('levSelect').value) || 5;
-  const inrRate = parseFloat(document.getElementById('inrRateInput').value) || 94;
+  const now = Date.now();
 
   if(!openPos || openPos.length === 0) {
     openCont.innerHTML = '<div style="color:var(--t3);font-size:11px;padding:10px">No live active positions open right now. Waiting for EMA angle breakout signal...</div>';
@@ -713,19 +723,23 @@ function renderLiveOpenPositions() {
 
   openPos.forEach(p => {
     const leveredPnlPct = p.pnl * activeLev;
-    const marginInr = 160; // Standard position margin
+    const marginInr = 160;
     const floatingInr = marginInr * (leveredPnlPct / 100);
     totalFloatingPnlInr += floatingInr;
 
     const pnlCls = leveredPnlPct >= 0 ? 'green' : 'red';
     const sign = leveredPnlPct >= 0 ? '+' : '';
 
+    const isBlock1Active = (p.gainerFromTs && (now - p.gainerFromTs) < 6 * 3600 * 1000);
+    const originBadge = isBlock1Active ? `<span style="background:rgba(0,230,118,0.15);color:var(--green);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700">🔥 Live Block 1 Gainer</span>` : `<span style="background:rgba(255,152,0,0.15);color:var(--orange);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700">📜 Historical Gainer (Block 1 Expired)</span>`;
+
     html += `<div class="open-pos-card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:14px;font-weight:800;font-family:var(--mono);color:#fff">${p.sym}</span>
         <span class="${p.dir==='UP'?'green':'red'}" style="font-size:11px;font-weight:800;background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:6px">${p.dir} • ${p.ch.toUpperCase()}</span>
       </div>
-      <div style="font-size:10px;color:var(--t2);display:flex;flex-direction:column;gap:2px">
+      <div style="margin-top:2px">${originBadge}</div>
+      <div style="font-size:10px;color:var(--t2);display:flex;flex-direction:column;gap:2px;margin-top:2px">
         <span>Entry Date & Time: <b>${p.dtStr}</b></span>
         <span>Entry Price: <b>$${p.ep}</b> | Live Price: <b>$${p.currentPrice}</b></span>
       </div>
@@ -839,6 +853,7 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
   const openPositions = [];
   const coinCapTracker = {};
   const executedLogs = [];
+  const skippedLogs = [];
 
   const day1Trades = tradesArr.filter(t => t.ch !== 'bothBoth' && t.elapsedH >= 0 && t.elapsedH < windowHours);
   day1Trades.sort((a,b) => a.et - b.et);
@@ -891,6 +906,17 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
       } else {
         savedLossInr += Math.abs(hypProfitInr);
       }
+
+      skippedLogs.push({
+        ...t,
+        marginInr,
+        lev,
+        slippagePct,
+        rawPnl,
+        leveredPnl,
+        hypProfitInr,
+        skipReason
+      });
       continue;
     }
 
@@ -951,6 +977,7 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
   }
 
   executedLogs.sort((a,b) => b.et - a.et);
+  skippedLogs.sort((a,b) => b.et - a.et);
 
   return {
     lev,
@@ -974,8 +1001,114 @@ function runSimulationForLeverage(lev, initWallet, compPct, windowHours, tradesA
     missedProfitInr: missedProfitInr.toFixed(2),
     savedLossInr: savedLossInr.toFixed(2),
     netFilterImpact: (savedLossInr - missedProfitInr).toFixed(2),
-    logs: executedLogs
+    logs: executedLogs,
+    skippedLogs: skippedLogs
   };
+}
+
+function renderTradesTable() {
+  if(!globalLatestSimResult) return;
+  const r = globalLatestSimResult;
+
+  const headerEl = document.getElementById('tradeTableHeader');
+  const bodyEl = document.getElementById('tradeLogBody');
+
+  if(activeLogTab === 'executed') {
+    headerEl.innerHTML = `<tr>
+      <th>#</th>
+      <th>Entry Date & Time</th>
+      <th>Exit Date & Time</th>
+      <th>Coin</th>
+      <th>Channel</th>
+      <th>Dir</th>
+      <th>Margin (₹)</th>
+      <th>Lev</th>
+      <th>Entry $</th>
+      <th>Exit $</th>
+      <th>Max HH %</th>
+      <th>Max LL %</th>
+      <th>Raw PnL%</th>
+      <th>Levered PnL%</th>
+      <th>Fees (₹)</th>
+      <th>Payout (₹)</th>
+      <th>New Wallet (₹)</th>
+      <th>Exit Reason (NO SL)</th>
+    </tr>`;
+
+    let logsHtml = '';
+    if(r.logs.length === 0) {
+      logsHtml = `<tr><td colspan="18" style="text-align:center;color:var(--t3);padding:25px">No live trades recorded yet today. Click "Scan Live Binance Gainers & Positions Now" to scan Binance API live!</td></tr>`;
+    } else {
+      r.logs.forEach((t, i) => {
+        const rowCls = t.isLiq ? 'liq' : t.netProfitInr > 0 ? 'win' : 'loss';
+        const pnlCls = t.netProfitInr > 0 ? 'green' : 'red';
+        const ps = t.netProfitInr > 0 ? '+' : '';
+        logsHtml += `<tr class="${rowCls}">
+          <td>#${i+1}</td>
+          <td><b>${t.dtStr}</b></td>
+          <td><b>${t.xtStr || '-'}</b></td>
+          <td><b>${t.sym}</b></td>
+          <td>${t.ch}</td>
+          <td class="${t.dir==='UP'?'green':'red'}">${t.dir}</td>
+          <td>₹${t.marginInr.toFixed(2)}</td>
+          <td><b>${t.lev}x</b></td>
+          <td>$${t.ep}</td>
+          <td>$${t.xp}</td>
+          <td class="green">+${t.hhPct || 0}%</td>
+          <td class="red">${t.llPct || 0}%</td>
+          <td>${t.rawPnl >= 0 ? '+' : ''}${t.rawPnl}%</td>
+          <td class="${pnlCls}"><b>${ps}${t.leveredPnl.toFixed(1)}%</b></td>
+          <td class="gold">₹${t.fundingInr.toFixed(2)}</td>
+          <td class="${pnlCls}"><b>${ps}₹${t.netProfitInr.toFixed(2)}</b></td>
+          <td><b>₹${t.newWallet.toFixed(2)}</b></td>
+          <td>${t.isLiq ? '💥 LIQUIDATED (100% Margin Lost)' : t.reason}</td>
+        </tr>`;
+      });
+    }
+    bodyEl.innerHTML = logsHtml;
+
+  } else {
+    // SKIPPED TRADES TABLE
+    headerEl.innerHTML = `<tr>
+      <th>#</th>
+      <th>Signal Date & Time</th>
+      <th>Coin</th>
+      <th>Channel</th>
+      <th>Dir</th>
+      <th>Hypothetical Margin (₹)</th>
+      <th>Lev</th>
+      <th>Entry $</th>
+      <th>Exit $</th>
+      <th>Hypothetical Levered PnL%</th>
+      <th>Hypothetical Impact (₹)</th>
+      <th>Skipped Reason</th>
+    </tr>`;
+
+    let logsHtml = '';
+    if(!r.skippedLogs || r.skippedLogs.length === 0) {
+      logsHtml = `<tr><td colspan="12" style="text-align:center;color:var(--t3);padding:25px">No trades skipped yet. Capital & position limits are fully available.</td></tr>`;
+    } else {
+      r.skippedLogs.forEach((t, i) => {
+        const pnlCls = t.hypProfitInr > 0 ? 'green' : 'red';
+        const ps = t.hypProfitInr > 0 ? '+' : '';
+        logsHtml += `<tr>
+          <td>#${i+1}</td>
+          <td><b>${t.dtStr}</b></td>
+          <td><b>${t.sym}</b></td>
+          <td>${t.ch}</td>
+          <td class="${t.dir==='UP'?'green':'red'}">${t.dir}</td>
+          <td>₹${t.marginInr.toFixed(2)}</td>
+          <td><b>${t.lev}x</b></td>
+          <td>$${t.ep}</td>
+          <td>$${t.xp}</td>
+          <td class="${pnlCls}"><b>${ps}${t.leveredPnl.toFixed(1)}%</b></td>
+          <td class="${pnlCls}"><b>${ps}₹${t.hypProfitInr.toFixed(2)}</b></td>
+          <td class="gold"><b>${t.skipReason}</b></td>
+        </tr>`;
+      });
+    }
+    bodyEl.innerHTML = logsHtml;
+  }
 }
 
 function runSimulation() {
@@ -990,6 +1123,7 @@ function runSimulation() {
 
   const trades = loadStoredTrades();
   const r = runSimulationForLeverage(activeLev, initW, compPct, windowH, trades, inrRate, currentStrategy);
+  globalLatestSimResult = r;
 
   document.getElementById('startW').textContent = `₹${r.initWallet.toFixed(2)}`;
   const curWEl = document.getElementById('curW');
@@ -1024,7 +1158,11 @@ function runSimulation() {
   impactEl.className = r.netFilterImpact >= 0 ? 'w-val green' : 'w-val red';
 
   document.getElementById('lastUpdated').textContent = `Updated: ${new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata'})}`;
-  document.getElementById('tradeCntBadge').textContent = `${r.logs.length} Live Trades Recorded (Newest First)`;
+  document.getElementById('executedCntTab').textContent = r.logs.length;
+  document.getElementById('skippedCntTab').textContent = r.skippedLogs ? r.skippedLogs.length : 0;
+  document.getElementById('tradeCntBadge').textContent = `${r.logs.length} Executed Trades • ${r.skipped} Skipped Trades`;
+
+  renderTradesTable();
 
   const tiers = [1, 3, 5, 7, 10];
   let matrixHtml = '';
@@ -1045,62 +1183,53 @@ function runSimulation() {
     </tr>`;
   }
   document.getElementById('matrixBody').innerHTML = matrixHtml;
-
-  let logsHtml = '';
-  if(r.logs.length === 0) {
-    logsHtml = `<tr><td colspan="18" style="text-align:center;color:var(--t3);padding:25px">No live trades recorded yet today. Click "Scan Live Binance Gainers & Positions Now" to scan Binance API live!</td></tr>`;
-  } else {
-    r.logs.forEach((t, i) => {
-      const rowCls = t.isLiq ? 'liq' : t.netProfitInr > 0 ? 'win' : 'loss';
-      const pnlCls = t.netProfitInr > 0 ? 'green' : 'red';
-      const ps = t.netProfitInr > 0 ? '+' : '';
-      logsHtml += `<tr class="${rowCls}">
-        <td>#${i+1}</td>
-        <td><b>${t.dtStr}</b></td>
-        <td><b>${t.xtStr || '-'}</b></td>
-        <td><b>${t.sym}</b></td>
-        <td>${t.ch}</td>
-        <td class="${t.dir==='UP'?'green':'red'}">${t.dir}</td>
-        <td>₹${t.marginInr.toFixed(2)}</td>
-        <td><b>${t.lev}x</b></td>
-        <td>$${t.ep}</td>
-        <td>$${t.xp}</td>
-        <td class="green">+${t.hhPct || 0}%</td>
-        <td class="red">${t.llPct || 0}%</td>
-        <td>${t.rawPnl >= 0 ? '+' : ''}${t.rawPnl}%</td>
-        <td class="${pnlCls}"><b>${ps}${t.leveredPnl.toFixed(1)}%</b></td>
-        <td class="gold">₹${t.fundingInr.toFixed(2)}</td>
-        <td class="${pnlCls}"><b>${ps}₹${t.netProfitInr.toFixed(2)}</b></td>
-        <td><b>₹${t.newWallet.toFixed(2)}</b></td>
-        <td>${t.isLiq ? '💥 LIQUIDATED (100% Margin Lost)' : t.reason}</td>
-      </tr>`;
-    });
-  }
-  document.getElementById('tradeLogBody').innerHTML = logsHtml;
 }
 
 function exportSimTXT() {
+  if(!globalLatestSimResult) return;
+  const r = globalLatestSimResult;
+
   const initW = document.getElementById('initWalletInput').value;
   const activeLev = document.getElementById('levSelect').value;
   const windowH = document.getElementById('windowSelect').value;
   const inrRate = document.getElementById('inrRateInput').value;
 
-  const trades = loadStoredTrades();
-
   let txt = `================================================================================\n`;
-  txt += `⚡ EMA MOMENTUM — LIVE BINANCE 24H RECONSTRUCTOR REPORT v18\n`;
+  txt += `⚡ EMA MOMENTUM — LIVE BINANCE 24H RECONSTRUCTOR FULL REPORT v19\n`;
   txt += `Strategy: Strategy ${currentStrategy} | USD/INR Rate: ₹${inrRate}\n`;
   txt += `Starting Wallet: ₹${initW} INR | Compounding: 20% | Leverage: ${activeLev}x\n`;
   txt += `Active Window: 0h -> ${windowH}h (Block 1 Filter)\n`;
-  txt += `Total Recorded Trades: ${trades.length}\n`;
+  txt += `Total Executed Trades: ${r.logs.length} | Total Skipped Trades: ${r.skipped}\n`;
+  txt += `Final Wallet Balance: ₹${r.finalWallet.toFixed(2)} (${r.totalReturnPct >= 0 ? '+' : ''}${r.totalReturnPct.toFixed(2)}% Return)\n`;
+  txt += `Skipped Trades Impact: Missed Profit ₹${r.missedProfitInr} | Saved Loss ₹${r.savedLossInr} | Net Impact ₹${r.netFilterImpact}\n`;
   txt += `Generated: ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})}\n`;
   txt += `================================================================================\n\n`;
+
+  txt += `--------------------------------------------------------------------------------\n`;
+  txt += `SECTION 1: EXECUTED TRADES LOG (${r.logs.length} TRADES)\n`;
+  txt += `--------------------------------------------------------------------------------\n`;
+  r.logs.forEach((t, i) => {
+    txt += `#${i+1} | Entry: ${t.dtStr} | Exit: ${t.xtStr || '-'} | Coin: ${t.sym} | Ch: ${t.ch} | Dir: ${t.dir}\n`;
+    txt += `   Margin: ₹${t.marginInr.toFixed(2)} | Entry Price: $${t.ep} | Exit Price: $${t.xp}\n`;
+    txt += `   Max HH: +${t.hhPct||0}% | Max LL: ${t.llPct||0}% | Raw PnL: ${t.rawPnl}% | Levered PnL: ${t.leveredPnl.toFixed(1)}%\n`;
+    txt += `   Fees: ₹${t.fundingInr.toFixed(2)} | Net Payout: ₹${t.netProfitInr.toFixed(2)} | New Wallet: ₹${t.newWallet.toFixed(2)} | Exit: ${t.reason}\n\n`;
+  });
+
+  txt += `--------------------------------------------------------------------------------\n`;
+  txt += `SECTION 2: SKIPPED TRADES DETAILED LOG (${r.skippedLogs.length} TRADES)\n`;
+  txt += `--------------------------------------------------------------------------------\n`;
+  r.skippedLogs.forEach((t, i) => {
+    txt += `#${i+1} | Signal Date/Time: ${t.dtStr} | Coin: ${t.sym} | Ch: ${t.ch} | Dir: ${t.dir}\n`;
+    txt += `   Hypothetical Margin: ₹${t.marginInr.toFixed(2)} | Entry Price: $${t.ep} | Exit Price: $${t.xp}\n`;
+    txt += `   Hypothetical PnL: ${t.leveredPnl.toFixed(1)}% (Hypothetical Payout: ₹${t.hypProfitInr.toFixed(2)})\n`;
+    txt += `   Skipped Reason: ${t.skipReason}\n\n`;
+  });
 
   const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `EMA_Live_Wallet_Simulator_${currentStrategy}_${activeLev}x.txt`;
+  a.download = `EMA_Live_Wallet_Simulator_${currentStrategy}_FULL_REPORT_${activeLev}x.txt`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
